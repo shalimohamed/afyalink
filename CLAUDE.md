@@ -1,0 +1,103 @@
+@AGENTS.md
+
+# AfyaLink — project context for Claude Code
+
+## About me and this project
+- I'm Shali, a software engineering student at USIU-Africa. AfyaLink is my project, and I need a **working demo in 7 weeks** (deadline around mid-November 2026).
+- I know **JavaScript/React**. Explain new concepts (Supabase, server actions, RLS, Daraja) briefly as you use them, so I can defend the work in a presentation.
+- Keep explanations short and plain. Build in small steps I can run and test, and tell me exactly which commands to run.
+- I'm on **Windows** and use the VS Code terminal.
+
+## What AfyaLink is
+A telemedicine web app for Kenya. A patient describes their symptoms, AI suggests what type of doctor they need, and they browse verified doctors and pick one. They pay via M-Pesa, have a video consultation, and receive a digital prescription. Past patients can also send free follow-up text messages if the doctor accepts.
+
+**Who it's for:** patients with mild issues that don't need a hospital visit: flu, skin conditions, mental health, follow-up consultations, lab result discussions and second opinions. It is **not for emergencies**.
+
+## The three roles
+- **Patient:** registers, describes symptoms, gets the AI suggestion, books a doctor, pays, consults, gets a prescription, rates the doctor, and views their medical history.
+- **Doctor:** registers with credentials (KMPDC registration upload) and their consultation fee, publishes availability slots, conducts consultations and writes prescriptions. They can't take bookings until an admin verifies them.
+- **Admin:** verifies doctor credentials, manages users and views platform analytics.
+
+## Key features
+- AI symptom checker that returns **possible conditions**, a suggested **specialty** and an **urgency level** (routine / within 24 hrs / emergency)
+- M-Pesa payment (STK Push)
+- Video consultations (every paid booking) and free follow-up text chat
+- Digital prescriptions (PDF)
+- Doctor ratings and reviews
+- Medical history tracking
+- Admin verification and analytics dashboard
+
+## Tech stack (decided, don't change without asking)
+| Area | Choice |
+|---|---|
+| Framework | Next.js (App Router) + TypeScript. The version is newer than your training data, so read `node_modules/next/dist/docs/` first (see AGENTS.md) |
+| Styling | Tailwind CSS v4, plus the design tokens in `app/globals.css` |
+| Database, auth, storage | Supabase (Postgres, Supabase Auth, Storage, Realtime) via `@supabase/supabase-js` + `@supabase/ssr` |
+| Access control | Postgres row-level security (patients see only their own records, and so on) |
+| Chat | Supabase Realtime |
+| Video | Daily.co embedded room (free tier), one per paid booking, created server-side with `DAILY_API_KEY`. Replaced Jitsi because the public meet.jit.si limits embedded calls |
+| Payments | Safaricom Daraja API, STK Push, **sandbox only** for the demo. The callback needs a public HTTPS URL, so use ngrok in development |
+| AI symptom checker | Claude API (`@anthropic-ai/sdk`), called server-side only, returning structured JSON |
+| Prescriptions | PDF generated with react-pdf or pdfkit and stored in Supabase Storage |
+| Hosting | Vercel (app) + Supabase (database) |
+
+## Rules to follow
+- **Safety first in the symptom checker.** Hard-coded red-flag rules (chest pain, trouble breathing, heavy bleeding, sudden weakness or confusion, fainting, suicidal thoughts) run *before and regardless of* the AI. They must tell the patient to go to a hospital or call **999 / 112** and must never allow a booking. Always show that the AI suggestion is not a diagnosis.
+- **Secrets stay server-side.** The Claude API key, Daraja keys and the Supabase service-role key go in `.env.local` only, and are never used in client components or committed to git.
+- **Unverified doctors** never appear in search results or accept bookings.
+- A booking is only confirmed after the M-Pesa callback reports success, never on the client's word.
+- Use Kenyan context: prices in **KES**, phone numbers in `2547XXXXXXXX` format for M-Pesa.
+- Medical data is sensitive (Kenya Data Protection Act). Keep RLS on every table.
+- Prefer simple, readable code over clever abstractions. This is a student demo.
+
+## Environment variables (`.env.local`)
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+ANTHROPIC_API_KEY=
+MPESA_CONSUMER_KEY=
+MPESA_CONSUMER_SECRET=
+MPESA_SHORTCODE=174379
+MPESA_PASSKEY=
+MPESA_CALLBACK_URL=
+DAILY_API_KEY=
+```
+
+## Product decisions (agreed, not built yet)
+- **Main patient flow:** the patient writes their symptoms, red-flag rules run first, then the AI lists possible conditions (clearly labelled "not a diagnosis") and suggests a specialty. The patient sees verified doctors in that specialty and books a slot.
+- **Booking = confirmed on payment.** When a doctor publishes a slot, they've already agreed to it. There's no separate "doctor accepts the booking" step. A successful M-Pesa callback confirms the booking.
+- **Slot hold.** When a patient starts paying, the slot is held for about 5 minutes. If the payment fails or times out, the slot is released so two patients can't pay for the same slot.
+- **Doctors set their own fee** at registration (in KES) and choose the fee type:
+  - **Per session** (fixed fee), or
+  - **Per hour** (for example, therapists). The price is the hourly rate times the slot length the doctor set. The patient doesn't choose a duration.
+- **Every paid booking is a video call.** There are no paid text consultations.
+- **Follow-up text chat** (only between a patient and a doctor they've booked with before):
+  - The patient sends a chat request, and the doctor accepts or rejects it.
+  - **Rejected:** the patient gets an automated message: "Please book a consultation to communicate with the doctor."
+  - Follow-up chat is **free**.
+  - **Accepted:** chat is open for **3 hours**. When that time runs out, it closes, and the doctor has to accept or reject again.
+- **Admin accounts** can't be chosen at registration. They're created directly in the database.
+- **On hold (not now):** extra features (passing the symptom-check result to the doctor, a demo seed script, a red-flag yes/no checklist, Swahili input, a consent screen, red-flag tests).
+
+## Build plan (7 weeks)
+1. **Setup and database:** Supabase project, tables, RLS, and auth with the three roles (patient / doctor / admin), plus `/register` and `/login` pages.
+2. **Doctor side:** registration with credential upload, admin verification queue, and availability slots.
+3. **Symptom checker:** red-flag rules, the Claude API suggestion (possible conditions, specialty, urgency), and routing to matching verified doctors.
+4. **Booking flow:** browse and filter verified doctors, book a slot (with the 5-minute hold), and pay via M-Pesa STK Push with the callback.
+5. **Consultation:** Daily.co video room for paid bookings, follow-up text chat requests (3-hour window) over Supabase Realtime, and the doctor writing a prescription (PDF).
+6. **Finishing:** ratings and reviews, patient medical history, admin analytics dashboard, and deploying to Vercel.
+
+Each phase should end with something clickable and demo-able.
+
+## Current status
+- ✅ Tech stack chosen.
+- ✅ **Landing page done** (`app/page.tsx`, `app/layout.tsx`, `app/globals.css`, `components/SymptomDemo.tsx`). It includes the hero, an interactive symptom-checker demo with **sample data** (`EXAMPLES` in `SymptomDemo.tsx`), how-it-works steps, services, a full-width crossfading slideshow section between the hero and "How it works" (`components/Showcase.tsx`: big photo on the left, headline + text on the right; 4 slides, 5 s each, prev/next arrows, dots and a pause button, paused by default for "reduce motion"; the M-Pesa slide draws our own PIN prompt, no Safaricom logo), a doctor photo in the doctors band (`public/images/doctor.jpg`); photos are free Pexels/Unsplash images credited in the footer, a not-for-emergencies panel, a for-doctors section and trust points. The "Get started" and "Log in" buttons link to `/register` and `/login`, which don't exist yet.
+- ✅ **Login and register pages (UI + server-side validation)** in `app/(auth)/`. Register has a patient/doctor toggle (`?role=doctor` preselects doctor) with doctor fields: specialty, registration number, licence upload (PDF/JPG/PNG, max 4 MB), fee type (per session / per hour) and fee in KES. Shared helpers: `lib/phone.ts` (normalises to `2547XXXXXXXX`) and `lib/specialties.ts`. The server actions validate but **don't save anything yet**; see the `TODO(Phase 1)` comments.
+- ✅ **Database schema written (not yet run in Supabase).** `supabase/migrations/0001_tables.sql` (14 tables, 3NF) and `0002_security.sql` (RLS on every table, signup trigger `handle_new_user`, functions `hold_slot`, `get_available_slots`, `get_doctor_ratings`, `get_doctor_reviews`, `review_doctor`, `respond_chat_request`, private storage buckets `licences` and `prescriptions`, realtime for chat). Design and 3NF justification: `docs/database.md`. Key choices: `bookings` has no `doctor_id` (go through the slot); derived values (ratings, slot taken, hold expiry, chat expiry) are computed, not stored; bookings/payments are never written from the browser.
+- ✅ `@supabase/supabase-js` and `@supabase/ssr` installed. Git is **not installed** on this machine yet.
+- ⏭️ **Next: Phase 1, continued.** Shali installs git and creates the Supabase project; run both SQL files in the SQL Editor; fill in `.env.local`; then connect the register/login actions to Supabase Auth.
+
+## Design notes
+- The landing page uses plain CSS classes in `app/globals.css` driven by colour tokens (`--bg`, `--ink`, `--accent`, and so on) with light and dark themes. Reuse those tokens in new pages so the app looks consistent.
+- Fonts come from `next/font/google`: Bricolage Grotesque for display, Figtree for body text and JetBrains Mono for labels. They're exposed as `--af-display`, `--af-body` and `--af-mono`.
