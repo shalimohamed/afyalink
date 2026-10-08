@@ -1,5 +1,5 @@
 import "server-only";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { SPECIALTIES, SPECIALTY_VALUES } from "@/lib/specialties";
 import { URGENCIES, type SymptomAnalysis, type Urgency } from "./types";
 
@@ -9,7 +9,10 @@ import { URGENCIES, type SymptomAnalysis, type Urgency } from "./types";
 // Free-tier note: Google may use free-tier prompts to improve its products, so
 // only use made-up symptoms in the demo, never real patient data.
 
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+// Tried in order. Free models are sometimes busy ("high demand") and Google
+// retires old ones (gemini-2.5-flash is closed to new users), so if the first
+// one fails we try a lighter one before falling back to keywords.
+const MODELS = [process.env.GEMINI_MODEL || "gemini-3.5-flash", "gemini-3.5-flash-lite"];
 
 const SYSTEM_PROMPT = `You are the symptom checker of AfyaLink, a telemedicine service in Kenya for mild, non-emergency health problems.
 A patient describes their symptoms. Reply with:
@@ -40,32 +43,39 @@ const RESPONSE_SCHEMA = {
 };
 
 // Returns the AI's suggestion, or null if the AI is unavailable (no key,
-// daily limit reached, timeout) or replied with something unusable.
+// daily limit reached, busy, timeout) or replied with something unusable.
 export async function analyseWithAI(symptoms: string): Promise<SymptomAnalysis | null> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     console.error("GEMINI_API_KEY is not set");
     return null;
   }
+  const ai = new GoogleGenAI({ apiKey });
 
-  try {
-    const ai = new GoogleGenAI({ apiKey });
-    const response = await ai.models.generateContent({
-      model: MODEL,
-      contents: symptoms,
-      config: {
-        systemInstruction: SYSTEM_PROMPT,
-        temperature: 0.2, // low = more consistent answers
-        responseMimeType: "application/json",
-        responseJsonSchema: RESPONSE_SCHEMA,
-        abortSignal: AbortSignal.timeout(20_000),
-      },
-    });
-    return parseAnalysis(JSON.parse(response.text ?? ""));
-  } catch (error) {
-    console.error("Gemini request failed:", error);
-    return null;
+  for (const model of MODELS) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: symptoms,
+        config: {
+          systemInstruction: SYSTEM_PROMPT,
+          temperature: 0.2, // low = more consistent answers
+          // Newer Gemini models "think" before answering. Low thinking took
+          // about 3 s in testing, against about 21 s with the default.
+          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+          responseMimeType: "application/json",
+          responseJsonSchema: RESPONSE_SCHEMA,
+          abortSignal: AbortSignal.timeout(15_000),
+        },
+      });
+      const analysis = parseAnalysis(JSON.parse(response.text ?? ""));
+      if (analysis) return analysis;
+      console.error(`Gemini (${model}) returned an unusable answer`);
+    } catch (error) {
+      console.error(`Gemini (${model}) request failed:`, error);
+    }
   }
+  return null;
 }
 
 // Never trust the AI's output blindly: check every field before using it.
