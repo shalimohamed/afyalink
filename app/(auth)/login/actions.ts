@@ -1,5 +1,9 @@
 "use server";
 
+import { redirect } from "next/navigation";
+import { HOME_FOR_ROLE, type Role } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+
 export type LoginState = {
   ok?: boolean;
   message?: string;
@@ -18,12 +22,26 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   if (!password) errors.password = "Enter your password.";
   if (Object.keys(errors).length > 0) return { errors, values: { email } };
 
-  // TODO(Phase 1): sign in with Supabase Auth, then redirect to the right
-  // dashboard for the user's role (patient, doctor or admin).
-  return {
-    ok: true,
-    errors: {},
-    values: { email },
-    message: "Your details look good. Logging in comes next, once Supabase is connected.",
-  };
+  // Supabase checks the password and, if it's right, the server client saves
+  // the login session in cookies.
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error?.code === "email_not_confirmed") {
+    return { errors: {}, values: { email }, message: "Please confirm your email first. Check your inbox for the link." };
+  }
+  if (error || !data.user) {
+    // Same message for a wrong email or a wrong password, so nobody can find
+    // out which emails have accounts.
+    return { errors: {}, values: { email }, message: "Wrong email or password." };
+  }
+
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).single<{ role: Role }>();
+  redirect(HOME_FOR_ROLE[profile?.role ?? "patient"]);
+}
+
+export async function logout() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect("/login");
 }

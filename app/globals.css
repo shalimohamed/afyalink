@@ -186,6 +186,16 @@ footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;paddin
 .switch{text-align:center;color:var(--muted);font-size:15px;margin:20px 0 0}
 .switch a{color:var(--accent);font-weight:600}
 
+/* dashboards: /patient, /doctor, /admin */
+.dash{flex:1;display:grid;gap:18px;align-content:start;padding-block:16px 56px}
+.dash h1{font-size:clamp(30px,4vw,42px);font-weight:800;letter-spacing:-.02em;margin-top:-8px}
+.dash .sub{color:var(--muted);margin:-10px 0 0}
+nav form .btn{font-family:inherit;cursor:pointer;padding:8px 16px}
+.panels{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.panel{padding:20px;border-radius:16px;border:1px solid var(--line);background:var(--surface);display:grid;gap:4px;align-content:start}
+.panel b{font-family:var(--display);font-size:20px}
+.panel span{color:var(--muted);font-size:15px}
+
 @media (max-width:900px){
   .hero,.services,.doctors{grid-template-columns:1fr}
   .steps{grid-template-columns:1fr 1fr}
@@ -203,4 +213,5 @@ footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;paddin
   .auth-card{padding:22px}
   .row2{grid-template-columns:1fr}
 }
+@media (max-width:900px){.panels{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}

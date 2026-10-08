@@ -123,7 +123,7 @@ export default function RegisterForm({ initialRole }: { initialRole: Role }) {
         )}
 
         <button className="btn btn-primary" disabled={pending}>
-          {pending ? "Checking…" : "Create account"}
+          {pending ? "Creating account…" : "Create account"}
         </button>
       </form>
 

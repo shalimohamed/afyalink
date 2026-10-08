@@ -36,7 +36,7 @@ export default function LoginForm() {
         </label>
 
         <button className="btn btn-primary" disabled={pending}>
-          {pending ? "Checking…" : "Log in"}
+          {pending ? "Logging in…" : "Log in"}
         </button>
       </form>
 

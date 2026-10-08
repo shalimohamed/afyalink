@@ -1,7 +1,11 @@
 "use server";
 
+import { redirect } from "next/navigation";
+import { HOME_FOR_ROLE } from "@/lib/auth";
 import { normalizeKenyanPhone } from "@/lib/phone";
 import { SPECIALTY_VALUES } from "@/lib/specialties";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 export type RegisterState = {
   ok?: boolean;
@@ -58,12 +62,99 @@ export async function register(_prev: RegisterState, formData: FormData): Promis
 
   if (Object.keys(errors).length > 0) return { errors, values };
 
-  // TODO(Phase 1): create the account in Supabase Auth, save the profile (role, phone,
-  // and for doctors: specialty, fee, verified = false) and upload the licence to Storage.
-  return {
-    ok: true,
-    errors: {},
-    values,
-    message: "Your details look good. Saving accounts comes next, once Supabase is connected.",
-  };
+  // Create the account. The details in `data` become "user metadata", and the
+  // handle_new_user trigger in the database copies them into profiles and
+  // patients/doctors. A role other than "doctor" always becomes "patient".
+  const isDoctor = values.role === "doctor";
+  const regNumber = values.regNumber.toUpperCase();
+
+  if (isDoctor) {
+    // Patients can't see unverified doctors, so this check uses the service-role client.
+    const { data: taken } = await createAdminClient()
+      .from("doctors")
+      .select("id")
+      .eq("registration_number", regNumber)
+      .maybeSingle();
+    if (taken) return { errors: { regNumber: "This registration number is already registered." }, values };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signUp({
+    email: values.email,
+    password,
+    options: {
+      data: {
+        role: values.role,
+        full_name: values.fullName,
+        phone,
+        ...(isDoctor && {
+          specialty: values.specialty,
+          registration_number: regNumber,
+          fee_type: values.feeType,
+          fee_kes: Number(values.fee),
+        }),
+      },
+    },
+  });
+
+  // With email confirmation on, Supabase doesn't say "already registered" (so
+  // nobody can test which emails have accounts). It returns a user with no
+  // identities instead.
+  if (error?.code === "user_already_exists" || (data.user && data.user.identities?.length === 0)) {
+    return { errors: { email: "An account with this email already exists. Try logging in." }, values };
+  }
+  if (error?.code === "weak_password") {
+    return { errors: { password: "Choose a stronger password." }, values };
+  }
+  if (error || !data.user) {
+    console.error("signUp failed:", error);
+    return { errors: {}, values, message: "We couldn't create your account. Please try again." };
+  }
+
+  if (isDoctor) {
+    const uploaded = await uploadLicence(data.user.id, formData.get("licence") as File);
+    if (!uploaded) {
+      return {
+        ok: true,
+        errors: {},
+        message: "Your account was created, but the certificate upload failed. Log in and upload it from your dashboard.",
+      };
+    }
+  }
+
+  // No session means Supabase sent a confirmation email first.
+  if (!data.session) {
+    return {
+      ok: true,
+      errors: {},
+      message: "Account created. Check your email for a confirmation link, then log in.",
+    };
+  }
+
+  redirect(HOME_FOR_ROLE[isDoctor ? "doctor" : "patient"]);
+}
+
+// Saves the certificate to the private 'licences' bucket as
+// licences/<doctor id>/licence.<ext>, then records the path on the doctor.
+// This uses the service-role client because, if email confirmation is on, the
+// new doctor isn't logged in yet.
+async function uploadLicence(doctorId: string, file: File) {
+  const ext = file.type === "application/pdf" ? "pdf" : file.type === "image/png" ? "png" : "jpg";
+  const path = `${doctorId}/licence.${ext}`;
+  const admin = createAdminClient();
+
+  const { error: uploadError } = await admin.storage
+    .from("licences")
+    .upload(path, file, { contentType: file.type, upsert: true });
+  if (uploadError) {
+    console.error("Licence upload failed:", uploadError);
+    return false;
+  }
+
+  const { error: updateError } = await admin.from("doctors").update({ licence_path: path }).eq("id", doctorId);
+  if (updateError) {
+    console.error("Saving licence path failed:", updateError);
+    return false;
+  }
+  return true;
 }
