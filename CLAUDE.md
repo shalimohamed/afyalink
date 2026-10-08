@@ -37,13 +37,13 @@ A telemedicine web app for Kenya. A patient describes their symptoms, AI suggest
 | Chat | Supabase Realtime |
 | Video | Daily.co embedded room (free tier), one per paid booking, created server-side with `DAILY_API_KEY`. Replaced Jitsi because the public meet.jit.si limits embedded calls |
 | Payments | Safaricom Daraja API, STK Push, **sandbox only** for the demo. The callback needs a public HTTPS URL, so use ngrok in development |
-| AI symptom checker | Claude API (`@anthropic-ai/sdk`), called server-side only, returning structured JSON |
+| AI symptom checker | **Google Gemini API, free tier** (`@google/genai`, model `gemini-2.5-flash`, override with `GEMINI_MODEL`), called server-side only, returning structured JSON. Switched from Claude on 2026-10-08 because there's no budget for a paid API. All AI code is in `lib/symptoms/gemini.ts`, so going back to Claude means rewriting one file. The free tier may use prompts to improve Google's products, so use **made-up symptoms only** in demos |
 | Prescriptions | PDF generated with react-pdf or pdfkit and stored in Supabase Storage |
 | Hosting | Vercel (app) + Supabase (database) |
 
 ## Rules to follow
 - **Safety first in the symptom checker.** Hard-coded red-flag rules (chest pain, trouble breathing, heavy bleeding, sudden weakness or confusion, fainting, suicidal thoughts) run *before and regardless of* the AI. They must tell the patient to go to a hospital or call **999 / 112** and must never allow a booking. Always show that the AI suggestion is not a diagnosis.
-- **Secrets stay server-side.** The Claude API key, Daraja keys and the Supabase service-role key go in `.env.local` only, and are never used in client components or committed to git.
+- **Secrets stay server-side.** The Gemini API key, Daraja keys and the Supabase service-role key go in `.env.local` only, and are never used in client components or committed to git.
 - **Unverified doctors** never appear in search results or accept bookings.
 - A booking is only confirmed after the M-Pesa callback reports success, never on the client's word.
 - Use Kenyan context: prices in **KES**, phone numbers in `2547XXXXXXXX` format for M-Pesa.
@@ -55,7 +55,7 @@ A telemedicine web app for Kenya. A patient describes their symptoms, AI suggest
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-ANTHROPIC_API_KEY=
+GEMINI_API_KEY=
 MPESA_CONSUMER_KEY=
 MPESA_CONSUMER_SECRET=
 MPESA_SHORTCODE=174379
@@ -100,7 +100,8 @@ Each phase should end with something clickable and demo-able.
 - ✅ **SQL run in Supabase** (14 tables, RLS and buckets verified via the REST API). `.env.local` has the Supabase URL plus publishable and secret keys. Note: Supabase rejects the secret key from anything with a browser-like User-Agent (including PowerShell's `Invoke-RestMethod` default), so set `-UserAgent` when testing.
 - ✅ **Phase 2 written (type-checks and lints, not yet clicked through):** `/admin/doctors` verification queue (signed certificate links, approve/reject with a reason via the `review_doctor` RPC); doctor certificate re-upload on `/doctor` (`lib/licence.ts`, puts rejected doctors back to pending); `/doctor/slots` to add slots (Nairobi time, 30–120 min, repeat 5 days or 4 weeks; overlaps are blocked by the DB) and delete free ones. Shared pieces: `components/ActionButton.tsx` (a one-button server-action form with an error message) and `lib/time.ts` (EAT formatting, `slotPrice`).
 - ⚠️ **Nothing since the schema has been tested by hand yet.** Shali chose to test later; the first test should cover register, login, then Phase 2.
-- ⏭️ **Next: Phase 3, the symptom checker:** red-flag rules, then the Claude API (conditions, specialty, urgency), saved to `symptom_checks`, then a list of matching verified doctors.
+- ✅ **Phase 3 written (type-checks and lints; red-flag rules tested with 21 sample sentences; the live Gemini call is untested because the key isn't in `.env.local` yet):** `/patient/check` form, then the `checkSymptoms` action: `lib/symptoms/redFlags.ts` runs first (if it matches, no AI and no booking) → `lib/symptoms/gemini.ts` (JSON-schema output, every field validated) → `lib/symptoms/fallback.ts` (keyword specialty if the AI fails), saved to `symptom_checks` + `symptom_check_conditions`, then redirect to `/patient/check/[id]`. The results page shows "not a diagnosis", the conditions, specialty, urgency and matching verified doctors (`lib/doctors.ts` `getVerifiedDoctors`, `components/DoctorList.tsx`), falling back to GPs. Emergency urgency from the AI also blocks booking. Which red flags matched isn't stored; it's recomputed from the text.
+- ⏭️ **Next: Phase 4, booking:** `/patient/doctors` (browse/filter) and `/patient/doctors/[id]` (profile and free slots via `get_available_slots`). The "View & book" links already point there. Then `hold_slot` RPC, M-Pesa STK Push and the callback route.
 
 ## Design notes
 - The landing page uses plain CSS classes in `app/globals.css` driven by colour tokens (`--bg`, `--ink`, `--accent`, and so on) with light and dark themes. Reuse those tokens in new pages so the app looks consistent.

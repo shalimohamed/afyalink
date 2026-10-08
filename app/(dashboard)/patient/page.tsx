@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "My AfyaLink" };
@@ -14,10 +15,10 @@ export default async function PatientHome() {
       <p className="sub">What would you like to do today?</p>
 
       <div className="panels">
-        <div className="panel">
+        <Link href="/patient/check" className="panel panel-link">
           <b>Check your symptoms</b>
-          <span>Describe how you feel and we&apos;ll suggest the right type of doctor. Coming soon.</span>
-        </div>
+          <span>Describe how you feel and we&apos;ll suggest the right type of doctor →</span>
+        </Link>
         <div className="panel">
           <b>My consultations</b>
           <span>You haven&apos;t booked a consultation yet.</span>
