@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "Admin · AfyaLink" };
@@ -18,7 +19,7 @@ export default async function AdminHome() {
     <>
       <div className="eyebrow">Admin</div>
       <h1>Platform overview</h1>
-      <p className="sub">The doctor verification queue is coming next.</p>
+      <p className="sub">Analytics are coming in a later phase.</p>
 
       <div className="panels">
         <div className="panel">
@@ -29,10 +30,10 @@ export default async function AdminHome() {
           <b>{doctors.count ?? 0}</b>
           <span>Doctors</span>
         </div>
-        <div className="panel">
+        <Link href="/admin/doctors" className="panel panel-link">
           <b>{pending.count ?? 0}</b>
-          <span>Doctors waiting for verification</span>
-        </div>
+          <span>Doctors waiting for verification →</span>
+        </Link>
       </div>
     </>
   );

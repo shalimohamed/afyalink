@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { HOME_FOR_ROLE } from "@/lib/auth";
+import { licenceError, saveLicence } from "@/lib/licence";
 import { normalizeKenyanPhone } from "@/lib/phone";
 import { SPECIALTY_VALUES } from "@/lib/specialties";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -16,8 +17,6 @@ export type RegisterState = {
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const LICENCE_TYPES = ["application/pdf", "image/jpeg", "image/png"];
-const MAX_LICENCE_BYTES = 4 * 1024 * 1024; // 4 MB. Vercel rejects request bodies over 4.5 MB.
 
 // A server action runs on the server when the form is submitted. Anyone can
 // send any data to it, so every rule is checked here, not in the browser.
@@ -50,10 +49,8 @@ export async function register(_prev: RegisterState, formData: FormData): Promis
     if (!SPECIALTY_VALUES.includes(values.specialty)) errors.specialty = "Choose your specialty.";
     if (!/^[A-Za-z0-9/ -]{3,20}$/.test(values.regNumber)) errors.regNumber = "Enter your registration number.";
 
-    const licence = formData.get("licence");
-    if (!(licence instanceof File) || licence.size === 0) errors.licence = "Upload your registration certificate.";
-    else if (!LICENCE_TYPES.includes(licence.type)) errors.licence = "Upload a PDF, JPG or PNG file.";
-    else if (licence.size > MAX_LICENCE_BYTES) errors.licence = "The file must be 4 MB or smaller.";
+    const licenceProblem = licenceError(formData.get("licence"));
+    if (licenceProblem) errors.licence = licenceProblem;
 
     if (values.feeType !== "per_session" && values.feeType !== "per_hour") errors.feeType = "Choose how you charge.";
     const fee = Number(values.fee);
@@ -112,7 +109,7 @@ export async function register(_prev: RegisterState, formData: FormData): Promis
   }
 
   if (isDoctor) {
-    const uploaded = await uploadLicence(data.user.id, formData.get("licence") as File);
+    const uploaded = await saveLicence(data.user.id, formData.get("licence") as File);
     if (!uploaded) {
       return {
         ok: true,
@@ -132,29 +129,4 @@ export async function register(_prev: RegisterState, formData: FormData): Promis
   }
 
   redirect(HOME_FOR_ROLE[isDoctor ? "doctor" : "patient"]);
-}
-
-// Saves the certificate to the private 'licences' bucket as
-// licences/<doctor id>/licence.<ext>, then records the path on the doctor.
-// This uses the service-role client because, if email confirmation is on, the
-// new doctor isn't logged in yet.
-async function uploadLicence(doctorId: string, file: File) {
-  const ext = file.type === "application/pdf" ? "pdf" : file.type === "image/png" ? "png" : "jpg";
-  const path = `${doctorId}/licence.${ext}`;
-  const admin = createAdminClient();
-
-  const { error: uploadError } = await admin.storage
-    .from("licences")
-    .upload(path, file, { contentType: file.type, upsert: true });
-  if (uploadError) {
-    console.error("Licence upload failed:", uploadError);
-    return false;
-  }
-
-  const { error: updateError } = await admin.from("doctors").update({ licence_path: path }).eq("id", doctorId);
-  if (updateError) {
-    console.error("Saving licence path failed:", updateError);
-    return false;
-  }
-  return true;
 }

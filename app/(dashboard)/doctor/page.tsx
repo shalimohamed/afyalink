@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { requireRole } from "@/lib/auth";
+import { formatKes } from "@/lib/time";
+import LicenceForm from "./LicenceForm";
 
 export const metadata: Metadata = { title: "Doctor dashboard · AfyaLink" };
 
@@ -34,14 +37,16 @@ export default async function DoctorHome() {
           <strong>Your registration is being reviewed.</strong>{" "}
           {doctor.licence_path
             ? "Patients can't see you or book you until an admin verifies your certificate."
-            : "We don't have your registration certificate yet. Uploading it will be available here soon."}
+            : "We don't have your registration certificate yet. Please upload it below."}
         </p>
       )}
       {doctor?.verification_status === "rejected" && (
         <p className="notice bad">
-          <strong>Your registration was not approved.</strong> {doctor.rejection_reason}
+          <strong>Your registration was not approved.</strong> {doctor.rejection_reason} You can upload a new
+          certificate below to be reviewed again.
         </p>
       )}
+      {doctor && (!doctor.licence_path || doctor.verification_status === "rejected") && <LicenceForm />}
       {doctor?.verification_status === "verified" && (
         <p className="notice ok">
           <strong>You&apos;re verified.</strong> Patients can find you and book your slots.
@@ -56,13 +61,13 @@ export default async function DoctorHome() {
         <div className="panel">
           <b>Your fee</b>
           <span>
-            KES {doctor?.fee_kes.toLocaleString("en-KE")} {doctor?.fee_type === "per_hour" ? "per hour" : "per session"}
+            {doctor && formatKes(doctor.fee_kes)} {doctor?.fee_type === "per_hour" ? "per hour" : "per session"}
           </span>
         </div>
-        <div className="panel">
+        <Link href="/doctor/slots" className="panel panel-link">
           <b>Availability</b>
-          <span>Publishing consultation slots is coming soon.</span>
-        </div>
+          <span>Publish the times patients can book you →</span>
+        </Link>
       </div>
     </>
   );
