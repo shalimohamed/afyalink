@@ -22,15 +22,19 @@ type DoctorRow = {
   specialties: { label: string };
 };
 
-// Verified doctors, optionally only one specialty, with their average rating.
-// Unverified doctors are never returned: the query asks for verified ones, and
-// row-level security hides unverified doctors from patients anyway.
-export async function getVerifiedDoctors(supabase: SupabaseClient, specialtyId?: string): Promise<DoctorSummary[]> {
+// Verified doctors (optionally one specialty, or one doctor by ID) with their
+// average rating. Unverified doctors are never returned: the query asks for
+// verified ones, and row-level security hides them from patients anyway.
+export async function getVerifiedDoctors(
+  supabase: SupabaseClient,
+  filter: { specialtyId?: string; doctorId?: string } = {},
+): Promise<DoctorSummary[]> {
   let query = supabase
     .from("doctors")
     .select("id, specialty_id, fee_type, fee_kes, bio, profile:profiles!doctors_id_fkey(full_name), specialties(label)")
     .eq("verification_status", "verified");
-  if (specialtyId) query = query.eq("specialty_id", specialtyId);
+  if (filter.specialtyId) query = query.eq("specialty_id", filter.specialtyId);
+  if (filter.doctorId) query = query.eq("id", filter.doctorId);
 
   const [{ data }, { data: ratings }] = await Promise.all([query, supabase.rpc("get_doctor_ratings")]);
   const ratingByDoctor = new Map(

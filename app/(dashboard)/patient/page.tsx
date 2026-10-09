@@ -19,10 +19,14 @@ export default async function PatientHome() {
           <b>Check your symptoms</b>
           <span>Describe how you feel and we&apos;ll suggest the right type of doctor →</span>
         </Link>
-        <div className="panel">
+        <Link href="/patient/doctors" className="panel panel-link">
+          <b>Find a doctor</b>
+          <span>Browse verified doctors and book a video consultation →</span>
+        </Link>
+        <Link href="/patient/bookings" className="panel panel-link">
           <b>My consultations</b>
-          <span>You haven&apos;t booked a consultation yet.</span>
-        </div>
+          <span>Your bookings, payments and video calls →</span>
+        </Link>
         <div className="panel">
           <b>Medical history</b>
           <span>Your past consultations and prescriptions will appear here.</span>

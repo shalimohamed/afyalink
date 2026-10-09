@@ -123,12 +123,12 @@ function EmergencyResult({ symptoms, redFlag }: { symptoms: string; redFlag: boo
 }
 
 async function MatchingDoctors({ supabase, specialtyId }: { supabase: SupabaseClient; specialtyId: string }) {
-  let doctors = await getVerifiedDoctors(supabase, specialtyId);
+  let doctors = await getVerifiedDoctors(supabase, { specialtyId });
   let note = "";
 
   // No verified doctor in that specialty yet: a GP can usually help first.
   if (doctors.length === 0 && specialtyId !== "general_practice") {
-    doctors = await getVerifiedDoctors(supabase, "general_practice");
+    doctors = await getVerifiedDoctors(supabase, { specialtyId: "general_practice" });
     note = "We don't have a verified doctor in that specialty yet. A general practitioner can help you first.";
   }
 
