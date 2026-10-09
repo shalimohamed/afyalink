@@ -2,9 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ActionButton from "@/components/ActionButton";
+import PrescriptionView from "@/components/PrescriptionView";
 import { requireRole } from "@/lib/auth";
 import { loadPatientBookings } from "@/lib/bookings";
+import { loadConsultation } from "@/lib/consultations";
 import { formatKes, formatSlot } from "@/lib/time";
+import { requestChat } from "@/app/(dashboard)/chat/actions";
 import { checkPayment } from "../actions";
 import HoldTimer from "./HoldTimer";
 import PaymentWatcher from "./PaymentWatcher";
@@ -17,6 +20,8 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
   const { supabase, profile } = await requireRole("patient");
   const [booking] = await loadPatientBookings(supabase, id);
   if (!booking) notFound();
+  // Paid bookings: call times, prescription.
+  const consultation = booking.status === "confirmed" ? await loadConsultation(supabase, booking.id) : null;
 
   const doctorName = booking.slot.doctor?.profile.full_name;
   const payment = booking.latestPayment;
@@ -81,12 +86,35 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
         </p>
       )}
 
-      {(booking.state === "upcoming" || booking.state === "past") && (
-        <div className="notice ok">
-          <strong>{booking.state === "upcoming" ? "Your consultation is booked. 🎉" : "This consultation has ended."}</strong>{" "}
-          {payment?.mpesa_receipt && <>M-Pesa receipt: <code>{payment.mpesa_receipt}</code>. </>}
-          {booking.state === "upcoming" && "The video call link will appear here."}
-        </div>
+      {consultation && (
+        <>
+          <div className="notice ok">
+            <strong>{booking.state === "upcoming" ? "Your consultation is booked. 🎉" : "This consultation has ended."}</strong>{" "}
+            {payment?.mpesa_receipt && <>M-Pesa receipt: <code>{payment.mpesa_receipt}</code>. </>}
+            {consultation.callWindow === "early" && "You can join the video call from 15 minutes before the start time."}
+          </div>
+          {consultation.callWindow === "open" && (
+            <Link href={`/consultation/${booking.id}`} className="btn btn-primary">
+              Join video call
+            </Link>
+          )}
+
+          {consultation.prescription && (
+            <>
+              <h2 className="section-title">Your prescription</h2>
+              <PrescriptionView supabase={supabase} prescriptionId={consultation.prescription.id} />
+            </>
+          )}
+
+          <h2 className="section-title">Questions afterwards?</h2>
+          <p className="empty">Send the doctor a free follow-up chat request. If they accept, you can chat for 3 hours.</p>
+          <ActionButton
+            action={requestChat}
+            fields={{ doctorId: booking.slot.doctor_id }}
+            label="Request a follow-up chat"
+            pendingLabel="Sending…"
+          />
+        </>
       )}
 
       {booking.state === "cancelled" && <p className="notice bad">This booking was cancelled.</p>}

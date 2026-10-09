@@ -27,6 +27,10 @@ export default async function PatientHome() {
           <b>My consultations</b>
           <span>Your bookings, payments and video calls →</span>
         </Link>
+        <Link href="/chat" className="panel panel-link">
+          <b>Follow-up chats</b>
+          <span>Free questions to doctors you&apos;ve seen →</span>
+        </Link>
         <div className="panel">
           <b>Medical history</b>
           <span>Your past consultations and prescriptions will appear here.</span>

@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // Pages that need a logged-in user. Which role may open which page is
 // checked again in each dashboard (see lib/auth.ts).
-const PROTECTED = ["/patient", "/doctor", "/admin"];
+const PROTECTED = ["/patient", "/doctor", "/admin", "/consultation", "/chat"];
 
 // Proxy runs on the server before every page request (it used to be called
 // "middleware" in older Next.js). It keeps the Supabase login fresh, because

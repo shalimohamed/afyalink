@@ -25,6 +25,11 @@ export default async function DoctorHome() {
     .select("registration_number, fee_type, fee_kes, verification_status, licence_path, rejection_reason, specialties(label)")
     .eq("id", profile.id)
     .single<DoctorRow>();
+  const { count: pendingChats } = await supabase
+    .from("chat_requests")
+    .select("id", { count: "exact", head: true })
+    .eq("doctor_id", profile.id)
+    .eq("status", "pending");
 
   return (
     <>
@@ -67,6 +72,14 @@ export default async function DoctorHome() {
         <Link href="/doctor/slots" className="panel panel-link">
           <b>Availability</b>
           <span>Publish the times patients can book you →</span>
+        </Link>
+        <Link href="/doctor/consultations" className="panel panel-link">
+          <b>Consultations</b>
+          <span>Join video calls and write prescriptions →</span>
+        </Link>
+        <Link href="/chat" className="panel panel-link">
+          <b>Follow-up chats</b>
+          <span>{pendingChats ? `${pendingChats} waiting for your answer →` : "Questions from past patients →"}</span>
         </Link>
       </div>
     </>

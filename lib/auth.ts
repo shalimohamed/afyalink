@@ -11,9 +11,8 @@ export const HOME_FOR_ROLE: Record<Role, string> = {
 
 export type Profile = { id: string; role: Role; full_name: string; phone: string | null };
 
-// Loads the logged-in user's profile for a dashboard page. Logged-out users go
-// to /login; users with a different role go to their own dashboard.
-export async function requireRole(role: Role) {
+// Loads the logged-in user's profile, or sends logged-out users to /login.
+export async function requireUser() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -26,7 +25,14 @@ export async function requireRole(role: Role) {
     .eq("id", user.id)
     .single<Profile>();
   if (!profile) redirect("/login");
-  if (profile.role !== role) redirect(HOME_FOR_ROLE[profile.role]);
 
   return { supabase, user, profile };
+}
+
+// Same, for a page that only one role may open. Users with a different role
+// go to their own dashboard.
+export async function requireRole(role: Role) {
+  const session = await requireUser();
+  if (session.profile.role !== role) redirect(HOME_FOR_ROLE[session.profile.role]);
+  return session;
 }

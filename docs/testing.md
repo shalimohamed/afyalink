@@ -84,7 +84,28 @@ Test accounts to create (any emails work; nothing is sent):
 - [ ] Book another slot → Pay → **cancel** the prompt on your phone → page shows "The payment didn't go through" and lets you try again.
 - [ ] Book another slot and **don't pay**. Wait for the countdown to reach 0 → "Your 5-minute hold ran out". On Doctor A's page, the slot is **bookable again**.
 
-## 9. Role checks
+## 9. Video call (use the slot paid for in step 7; book one starting within 15 minutes)
+
+- [ ] Patient → the booking → **Join video call** appears from 15 minutes before the start. Before that, it says when the call opens.
+- [ ] Doctor A → **Consultations** → **Join call**. Both windows show the Daily call; allow camera and mic; you see and hear each other.
+- [ ] Open the consultation link while logged in as a different patient → "not found".
+
+## 10. Prescription
+
+- [ ] Doctor A → Consultations → **Write prescription** → submit with no medicine → error. Add 2 medicines (remove an empty row with ✕) → **Issue prescription**.
+- [ ] The prescription shows with **Download PDF** → the PDF has the doctor, registration no., patient, diagnosis, medicines table and notes.
+- [ ] Patient → the booking → **Your prescription** shows with **Download PDF**.
+
+## 11. Follow-up chat
+
+- [ ] Patient → the booking → **Request a follow-up chat** → "Waiting for the doctor to accept".
+- [ ] Request again for the same doctor → "You already have a request waiting".
+- [ ] Doctor A → dashboard shows "1 waiting" → **Follow-up chats** → **Accept**. Within seconds, the patient's page switches to the chat **without reloading**.
+- [ ] Send messages both ways. They appear in the other window **without reloading**.
+- [ ] Make a second request and have the doctor **Reject** it → the patient sees "Please book a consultation to communicate with the doctor."
+- [ ] (Optional, to test the 3-hour limit faster) In Supabase SQL Editor: `update chat_requests set responded_at = now() - interval '3 hours 1 minute' where status = 'accepted';` → reload: "This chat closed after 3 hours", no message box, and the patient can request again.
+
+## 12. Role checks
 
 - [ ] Logged in as the patient, open `/doctor` and `/admin` → you're sent back to /patient.
 - [ ] Logged in as Doctor A, open `/admin` → sent back to /doctor.
