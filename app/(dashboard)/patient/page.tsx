@@ -31,10 +31,10 @@ export default async function PatientHome() {
           <b>Follow-up chats</b>
           <span>Free questions to doctors you&apos;ve seen →</span>
         </Link>
-        <div className="panel">
+        <Link href="/patient/history" className="panel panel-link">
           <b>Medical history</b>
-          <span>Your past consultations and prescriptions will appear here.</span>
-        </div>
+          <span>Your symptom checks, consultations, prescriptions and details →</span>
+        </Link>
       </div>
 
       <p className="notice bad">
