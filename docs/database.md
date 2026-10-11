@@ -5,6 +5,7 @@ The SQL lives in `supabase/migrations/`:
 
 - `0001_tables.sql`: the 14 tables, keys, constraints and indexes
 - `0002_security.sql`: row-level security, the signup trigger, database functions, storage and realtime
+- `0003_drop_video_room_url.sql`: removes `bookings.video_room_url`. The video room name is derived from the booking ID (`consult-<id>`), so storing it would duplicate data.
 
 ## Entity-relationship diagram
 
@@ -67,7 +68,6 @@ erDiagram
     uuid slot_id FK
     booking_status status
     int amount_kes
-    text video_room_url
   }
   PAYMENTS {
     uuid id PK
@@ -168,6 +168,7 @@ In the Supabase dashboard, **Database → Schema Visualizer** draws the same dia
   - when a payment hold expires: `bookings.created_at` + 5 minutes
   - when a follow-up chat closes: `chat_requests.responded_at` + 3 hours
   - whether a consultation is finished: the slot's `ends_at` has passed
+  - the video room's name: `consult-<booking id>`
 
 ### Values that look duplicated but aren't
 - **`bookings.amount_kes` vs `doctors.fee_kes`.** The fee is the doctor's *current* price, which they can change at any time. The booking amount is what this patient was charged on that day. It's a historical fact about the booking, so it depends only on the booking's key.

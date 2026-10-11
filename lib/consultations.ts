@@ -1,13 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-const OPENS_BEFORE_MS = 15 * 60 * 1000; // same as lib/daily.ts
+const OPENS_BEFORE_MS = 15 * 60 * 1000; // same as lib/livekit.ts
 const CLOSES_AFTER_MS = 30 * 60 * 1000;
 
 type Row = {
   id: string;
   status: string;
   patient_id: string;
-  video_room_url: string | null;
   slot: {
     starts_at: string;
     ends_at: string;
@@ -27,7 +26,7 @@ export type Consultation = Omit<Row, "prescriptions"> & {
 };
 
 const SELECT =
-  "id, status, patient_id, video_room_url, " +
+  "id, status, patient_id, " +
   "slot:availability_slots(starts_at, ends_at, doctor_id, " +
   "doctor:doctors(registration_number, specialties(label), profile:profiles!doctors_id_fkey(full_name))), " +
   "patient:patients(date_of_birth, sex, profile:profiles(full_name, phone)), " +

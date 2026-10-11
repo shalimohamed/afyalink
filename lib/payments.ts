@@ -1,6 +1,5 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ensureVideoRoom } from "@/lib/videoRoom";
 
 export type PaymentResult = {
   checkoutRequestId: string;
@@ -64,13 +63,9 @@ export async function recordPaymentResult(result: PaymentResult) {
     .in("status", ["pending_payment", "expired"]);
   if (bookingError?.code === "23505") {
     console.error(`Booking ${payment.booking_id} was paid after its slot was taken by someone else. Refund needed.`);
-    return;
   } else if (bookingError) {
     console.error("Confirming booking failed:", bookingError);
-    return;
   }
-
-  // Every paid booking is a video call. If Daily is unreachable now, the room
-  // is created later when someone opens the consultation page.
-  await ensureVideoRoom(payment.booking_id);
+  // No video setup needed here: the LiveKit room is created automatically
+  // when the patient or doctor first joins (see lib/livekit.ts).
 }

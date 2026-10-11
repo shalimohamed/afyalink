@@ -8,7 +8,6 @@ type BookingRow = {
   amount_kes: number;
   created_at: string;
   confirmed_at: string | null;
-  video_room_url: string | null;
   slot: {
     starts_at: string;
     ends_at: string;
@@ -34,7 +33,7 @@ export async function loadPatientBookings(supabase: SupabaseClient, bookingId?: 
   let query = supabase
     .from("bookings")
     .select(
-      "id, status, amount_kes, created_at, confirmed_at, video_room_url, " +
+      "id, status, amount_kes, created_at, confirmed_at, " +
         "slot:availability_slots(starts_at, ends_at, doctor_id, " +
         "doctor:doctors(specialties(label), profile:profiles!doctors_id_fkey(full_name))), " +
         "payments(status, created_at, mpesa_receipt, result_desc)",

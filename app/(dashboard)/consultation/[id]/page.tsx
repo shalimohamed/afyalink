@@ -3,9 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { loadConsultation } from "@/lib/consultations";
-import { createMeetingToken } from "@/lib/daily";
+import { createVideoToken } from "@/lib/livekit";
 import { formatSlot } from "@/lib/time";
-import { ensureVideoRoom } from "@/lib/videoRoom";
+import VideoCall from "./VideoCall";
 
 export const metadata: Metadata = { title: "Video consultation · AfyaLink" };
 
@@ -23,25 +23,25 @@ export default async function ConsultationPage({ params }: { params: Promise<{ i
   const doctorName = consultation.slot.doctor?.profile.full_name ?? "";
   const patientName = consultation.patient?.profile.full_name ?? "";
 
-  // The room and the personal entry token are made on the server, so the
-  // Daily API key never reaches the browser.
-  let callUrl: string | null = null;
+  // The personal access token is made on the server, so the LiveKit API
+  // secret never reaches the browser. Tokens are only given out while the
+  // call window is open.
+  const displayName = isDoctor ? `Dr. ${doctorName}` : patientName;
+  let token: string | null = null;
   if (consultation.callWindow === "open") {
-    const roomUrl = await ensureVideoRoom(consultation.id);
-    if (roomUrl) {
-      try {
-        const token = await createMeetingToken({
-          roomUrl,
-          userName: isDoctor ? `Dr. ${doctorName}` : patientName,
-          isOwner: isDoctor,
-          endsAt: consultation.slot.ends_at,
-        });
-        callUrl = `${roomUrl}?t=${token}`;
-      } catch (error) {
-        console.error(error);
-      }
+    try {
+      token = await createVideoToken({
+        bookingId: consultation.id,
+        userId: profile.id,
+        displayName,
+        isDoctor,
+        endsAt: consultation.slot.ends_at,
+      });
+    } catch (error) {
+      console.error("Creating video token failed:", error);
     }
   }
+  const serverUrl = process.env.LIVEKIT_URL;
 
   const back = isDoctor ? "/doctor/consultations" : `/patient/bookings/${consultation.id}`;
 
@@ -59,13 +59,8 @@ export default async function ConsultationPage({ params }: { params: Promise<{ i
       )}
       {consultation.callWindow === "ended" && <p className="notice ok">This consultation has ended.</p>}
       {consultation.callWindow === "open" &&
-        (callUrl ? (
-          <iframe
-            className="video-frame"
-            src={callUrl}
-            title="Video consultation"
-            allow="camera; microphone; fullscreen; display-capture; autoplay"
-          />
+        (token && serverUrl ? (
+          <VideoCall serverUrl={serverUrl} token={token} displayName={displayName} />
         ) : (
           <p className="notice bad">We couldn&apos;t start the video call. Please reload the page in a moment.</p>
         ))}

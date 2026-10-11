@@ -90,7 +90,7 @@ With the seed data you can skip creating accounts in steps 2–3 and use Dr. Nje
 ## 9. Video call (use the slot paid for in step 7; book one starting within 15 minutes)
 
 - [ ] Patient → the booking → **Join video call** appears from 15 minutes before the start. Before that, it says when the call opens.
-- [ ] Doctor A → **Consultations** → **Join call**. Both windows show the Daily call; allow camera and mic; you see and hear each other.
+- [ ] Doctor A → **Consultations** → **Join call**. Both windows show the camera and mic check, then **Join consultation** → you see and hear each other (LiveKit).
 - [ ] Open the consultation link while logged in as a different patient → "not found".
 
 ## 10. Prescription
