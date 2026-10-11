@@ -117,21 +117,6 @@ export default async function DoctorHome() {
           </div>
         </div>
       </div>
-
-      <div className="panels">
-        <Link href="/doctor/slots" className="panel panel-link">
-          <b>Availability</b>
-          <span>Publish the times patients can book you →</span>
-        </Link>
-        <Link href="/doctor/consultations" className="panel panel-link">
-          <b>Consultations</b>
-          <span>Join video calls and write prescriptions →</span>
-        </Link>
-        <Link href="/chat" className="panel panel-link">
-          <b>Follow-up chats</b>
-          <span>{pendingChats ? `${pendingChats} waiting for your answer →` : "Questions from past patients →"}</span>
-        </Link>
-      </div>
     </>
   );
 }

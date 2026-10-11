@@ -307,6 +307,21 @@ code{font-family:var(--mono);font-size:.9em}
   .speech::before{left:50%;top:-9px;transform:translateX(-50%) rotate(135deg)}
 }
 
+/* dashboard menu */
+.dash-top-nav{gap:20px}
+.dash-nav{display:flex;gap:4px;align-items:center;flex:1;justify-content:center;min-width:0;overflow-x:auto;scrollbar-width:none}
+.dash-nav::-webkit-scrollbar{display:none}
+.dash-nav a{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;text-decoration:none;font-weight:600;font-size:14px;color:var(--muted);white-space:nowrap;transition:background .15s,color .15s}
+.dash-nav a:hover{color:var(--ink);background:var(--soft)}
+.dash-nav a[aria-current="page"]{background:var(--ink);color:var(--bg)}
+.dash-nav a:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.nav-badge{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--alert);color:#fff;font-size:12px;display:inline-grid;place-items:center}
+.dash-top-nav form .btn{white-space:nowrap}
+@media (max-width:900px){
+  .dash-top-nav{flex-wrap:wrap;row-gap:10px}
+  .dash-nav{order:3;flex-basis:100%;justify-content:flex-start;padding-bottom:2px}
+}
+
 /* interactive dashboards */
 .dash-top{display:grid;grid-template-columns:1.7fr 1fr;gap:16px;align-items:stretch}
 .dash-top > *{min-width:0}
