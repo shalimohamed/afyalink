@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { HOME_FOR_ROLE, type Role } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -38,6 +39,27 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
 
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", data.user.id).single<{ role: Role }>();
   redirect(HOME_FOR_ROLE[profile?.role ?? "patient"]);
+}
+
+// "Continue with Google": Supabase gives us Google's sign-in page address,
+// and we send the browser there. Google then returns to /auth/callback.
+// Supabase only redirects to addresses on its Redirect URLs allow-list
+// (Authentication > URL Configuration), so a faked Origin header can't send
+// the login to another site.
+export async function signInWithGoogle() {
+  const requestHeaders = await headers();
+  const origin = requestHeaders.get("origin") ?? `http://${requestHeaders.get("host")}`;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: `${origin}/auth/callback` },
+  });
+  if (error || !data.url) {
+    console.error("Starting Google login failed:", error);
+    redirect("/login?error=google");
+  }
+  redirect(data.url);
 }
 
 export async function logout() {

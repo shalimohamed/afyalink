@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
+import GoogleButton from "@/components/GoogleButton";
 import { SPECIALTIES } from "@/lib/specialties";
 import { register, type RegisterState } from "./actions";
 
@@ -36,6 +37,19 @@ export default function RegisterForm({ initialRole }: { initialRole: Role }) {
           I&apos;m a doctor
         </button>
       </div>
+
+      {role === "patient" ? (
+        <>
+          <div className="google-gap" />
+          <GoogleButton label="Sign up with Google" />
+          <div className="divider">or with email</div>
+        </>
+      ) : (
+        <p className="notice ok google-gap">
+          Doctors register with this form so we can check your registration certificate. Google sign-up is for
+          patients.
+        </p>
+      )}
 
       <form action={formAction} className="form" noValidate>
         <input type="hidden" name="role" value={role} />

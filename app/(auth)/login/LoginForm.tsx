@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import GoogleButton from "@/components/GoogleButton";
 import { login, type LoginState } from "./actions";
 
 const initialState: LoginState = { errors: {} };
 
-export default function LoginForm() {
+export default function LoginForm({ googleFailed = false }: { googleFailed?: boolean }) {
   const [state, formAction, pending] = useActionState(login, initialState);
   const e = state.errors;
 
@@ -15,6 +16,14 @@ export default function LoginForm() {
       <div className="eyebrow">Welcome back</div>
       <h1>Log in</h1>
       <p className="sub">Patients, doctors and admins all log in here.</p>
+
+      {googleFailed && (
+        <p className="notice bad" role="alert">
+          Google sign-in didn&apos;t work. Please try again, or log in with your email.
+        </p>
+      )}
+      <GoogleButton />
+      <div className="divider">or with email</div>
 
       <form action={formAction} className="form" noValidate>
         {state.message && (
