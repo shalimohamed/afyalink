@@ -65,7 +65,7 @@ export default async function DoctorHome() {
       )}
       {doctor && (!doctor.licence_path || doctor.verification_status === "rejected") && <LicenceForm />}
       <div className="dash-top">
-        <Companion variant="patient" name="Your patients" messages={dashboard.messages} />
+        <Companion variant="patient" name="Mwananchi" messages={dashboard.messages} />
         {dashboard.next ? (
           <Countdown
             title="Your next patient"
