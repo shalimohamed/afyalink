@@ -4,6 +4,10 @@ import SymptomDemo from "@/components/SymptomDemo";
 // Free Pexels/Unsplash photo (credited in the footer). Importing it lets Next.js
 // read its size and generate a blurred placeholder while it loads.
 import doctorPhoto from "@/public/images/doctor.jpg";
+import doctorCallPhoto from "@/public/images/doctor-call.jpg";
+import patientCallPhoto from "@/public/images/patient-call.jpg";
+import patientWavePhoto from "@/public/images/patient-wave.jpg";
+import paymentPhoto from "@/public/images/payment.jpg";
 
 const steps = [
   ["Describe your symptoms", "Type what you're feeling in your own words, English or Kiswahili."],
@@ -69,7 +73,24 @@ export default function Home() {
             <span>Digital prescriptions</span>
           </div>
         </div>
-        <SymptomDemo />
+        {/* A big photo with the symptom-checker card overlapping its lower corner. */}
+        <div className="hero-visual">
+          <div className="hero-photo">
+            <Image
+              src={patientWavePhoto}
+              alt="A young woman smiling and waving at her doctor on a phone video call"
+              fill
+              priority
+              sizes="(max-width: 900px) 100vw, 560px"
+              placeholder="blur"
+              style={{ objectPosition: "50% 18%" }}
+            />
+            <span className="hero-chip">
+              <span className="live-dot" aria-hidden="true" /> Video consultation
+            </span>
+          </div>
+          <SymptomDemo />
+        </div>
       </header>
 
       <Showcase />
@@ -88,6 +109,31 @@ export default function Home() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* Photo mosaic: one tall photo and two wide ones, each with a short caption. */}
+      <section className="mosaic" aria-label="AfyaLink in everyday life">
+        <figure className="mosaic-tall">
+          <Image src={doctorCallPhoto} alt="A smiling doctor with a stethoscope waving on a video call" fill sizes="(max-width: 900px) 100vw, 560px" placeholder="blur" style={{ objectPosition: "50% 30%" }} />
+          <figcaption>
+            <b>Doctors you can trust</b>
+            <span>Every doctor&apos;s KMPDC registration is checked by our team.</span>
+          </figcaption>
+        </figure>
+        <figure>
+          <Image src={paymentPhoto} alt="A woman smiling and pointing at her phone" fill sizes="(max-width: 900px) 100vw, 520px" placeholder="blur" style={{ objectPosition: "50% 30%" }} />
+          <figcaption>
+            <b>Pay with M-Pesa</b>
+            <span>Enter your PIN and your booking is confirmed.</span>
+          </figcaption>
+        </figure>
+        <figure>
+          <Image src={patientCallPhoto} alt="A woman smiling during a video call on her phone at home" fill sizes="(max-width: 900px) 100vw, 520px" placeholder="blur" style={{ objectPosition: "50% 40%" }} />
+          <figcaption>
+            <b>Care from your sofa</b>
+            <span>No matatu, no queue, no waiting room.</span>
+          </figcaption>
+        </figure>
       </section>
 
       <section id="services">
@@ -125,7 +171,7 @@ export default function Home() {
                 src={doctorPhoto}
                 alt="A doctor in a white coat talking to a patient on a phone video call"
                 fill
-                sizes="(max-width: 900px) 100vw, 480px"
+                sizes="(max-width: 900px) 100vw, 560px"
                 placeholder="blur"
               />
             </div>

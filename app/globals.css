@@ -46,7 +46,22 @@ nav{display:flex;align-items:center;justify-content:space-between;padding-block:
 .navcta .login{text-decoration:none;font-weight:600;padding:8px 6px}
 
 /* hero */
-.hero{display:grid;grid-template-columns:1.05fr 1fr;gap:48px;align-items:center;padding-block:40px 72px}
+.hero{display:grid;grid-template-columns:1fr 1.05fr;gap:48px;align-items:center;padding-block:32px 64px}
+.hero-visual{position:relative;padding-bottom:36px}
+.hero-photo{position:relative;height:clamp(520px,58vw,680px);border-radius:28px;overflow:hidden;background:var(--soft);box-shadow:0 30px 70px -40px rgba(10,40,32,.55)}
+.hero-photo img{object-fit:cover}
+.hero-visual .demo{position:absolute;left:-24px;bottom:0;width:min(380px,88%);z-index:2}
+.hero-chip{position:absolute;top:18px;right:18px;display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:color-mix(in srgb,var(--surface) 92%,transparent);color:var(--ink);font-size:13px;font-weight:600;box-shadow:0 8px 24px -12px rgba(0,0,0,.4)}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#2BB673;box-shadow:0 0 0 0 rgba(43,182,115,.6);animation:pulse 2s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(43,182,115,0)}100%{box-shadow:0 0 0 0 rgba(43,182,115,0)}}
+.mosaic{display:grid;grid-template-columns:1.1fr 1fr;grid-template-rows:290px 290px;gap:14px;margin-block:8px 72px}
+.mosaic figure{position:relative;margin:0;border-radius:24px;overflow:hidden;background:var(--soft)}
+.mosaic-tall{grid-row:span 2}
+.mosaic img{object-fit:cover;transition:transform .7s ease}
+.mosaic figure:hover img{transform:scale(1.04)}
+.mosaic figcaption{position:absolute;inset:auto 0 0 0;padding:48px 22px 20px;background:linear-gradient(transparent,rgba(8,20,16,.78));color:#fff;display:grid;gap:2px}
+.mosaic figcaption b{font-family:var(--display);font-size:22px}
+.mosaic figcaption span{font-size:15px;opacity:.92}
 .hero > *{min-width:0}
 .hero h1{font-size:clamp(40px,6vw,68px);font-weight:800;letter-spacing:-.025em;margin-top:14px}
 .hero h1 em{font-style:normal;color:var(--accent)}
@@ -57,9 +72,9 @@ nav{display:flex;align-items:center;justify-content:space-between;padding-block:
 
 /* showcase: full-width slideshow between the hero and "How it works".
    Big photo on the left, the slide's words and controls on the right. */
-.showcase{display:grid;grid-template-columns:1.15fr 1fr;padding:0;margin-block:24px;background:var(--surface);border:1px solid var(--line);border-radius:28px;overflow:hidden}
+.showcase{display:grid;grid-template-columns:1.45fr 1fr;padding:0;margin-block:24px;background:var(--surface);border:1px solid var(--line);border-radius:28px;overflow:hidden}
 .showcase > *{min-width:0}
-.show-photo{position:relative;min-height:480px;background:var(--soft)}
+.show-photo{position:relative;min-height:600px;background:var(--soft)}
 .show-photo img{object-fit:cover}
 .slide{position:absolute;inset:0;opacity:0;transition:opacity .9s ease}
 .slide[data-active="true"]{opacity:1}
@@ -140,7 +155,7 @@ section{padding-block:72px}
 .notfor li{margin-bottom:6px}
 .notfor .call{margin-top:16px;font-family:var(--mono);font-size:14px}
 
-.doctors{background:var(--ink);color:var(--bg);border-radius:28px;padding:56px 44px;display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
+.doctors{background:var(--ink);color:var(--bg);border-radius:28px;padding:56px 44px;display:grid;grid-template-columns:1.2fr 1fr;gap:40px;align-items:center}
 .doctors > *{min-width:0}
 .doctors .eyebrow{color:var(--sun)}
 .doctors h2{font-size:clamp(30px,4vw,44px);font-weight:700;margin-top:10px}
@@ -150,7 +165,7 @@ section{padding-block:72px}
 .doctors li b{display:block;font-family:var(--display);font-size:17px}
 .doctors li span{opacity:.75;font-size:14px}
 .btn-sun{background:var(--sun);color:#11241F;margin-top:10px}
-.doctors-photo{position:relative;aspect-ratio:16/9;border-radius:18px;overflow:hidden;margin-bottom:28px}
+.doctors-photo{position:relative;aspect-ratio:4/3;border-radius:20px;overflow:hidden;margin-bottom:28px}
 .doctors-photo img{object-fit:cover;object-position:50% 30%}
 footer .credits{flex-basis:100%;font-size:12px}
 
@@ -330,8 +345,14 @@ code{font-family:var(--mono);font-size:.9em}
   .navlinks{display:none}
   .doctors{padding:40px 24px}
   .showcase{grid-template-columns:1fr}
-  .show-photo{min-height:0;aspect-ratio:4/3}
+  .show-photo{min-height:0;aspect-ratio:4/5}
   .show-text{padding:28px 24px 32px}
+  .hero-photo{height:min(520px,120vw)}
+  .hero-visual{padding-bottom:0}
+  .hero-visual .demo{position:relative;left:auto;bottom:auto;width:auto;margin:-96px 14px 0}
+  .mosaic{grid-template-columns:1fr;grid-template-rows:none}
+  .mosaic figure{height:320px}
+  .mosaic-tall{grid-row:auto;height:440px!important}
 }
 @media (max-width:560px){
   .steps,.svc-list,.trust{grid-template-columns:1fr}
