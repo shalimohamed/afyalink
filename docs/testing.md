@@ -108,7 +108,24 @@ With the seed data you can skip creating accounts in steps 2–3 and use Dr. Nje
 - [ ] Make a second request and have the doctor **Reject** it → the patient sees "Please book a consultation to communicate with the doctor."
 - [ ] (Optional, to test the 3-hour limit faster) In Supabase SQL Editor: `update chat_requests set responded_at = now() - interval '3 hours 1 minute' where status = 'accepted';` → reload: "This chat closed after 3 hours", no message box, and the patient can request again.
 
-## 12. Role checks
+## 12. Reviews (needs a paid consultation whose time has passed)
+
+- [ ] Patient → that booking → **Rate your consultation** → choose stars, add a comment → **Submit review** → it shows your review.
+- [ ] Find a doctor → that doctor shows ★ with the review count; their profile lists the comment **without your name**.
+- [ ] The doctor's dashboard shows the average rating.
+
+## 13. Medical history
+
+- [ ] Patient → **Medical history** → set date of birth, sex and phone → **Save details** → "Saved".
+- [ ] The timeline lists symptom checks (with urgency) and consultations (with prescription and a **Prescription PDF** button).
+
+## 14. Admin: users and analytics (run `0004_admin_analytics.sql` first)
+
+- [ ] Admin → **Platform overview** shows revenue, stat tiles and three charts. Hovering a bar shows its value; **Show as table** lists the numbers.
+- [ ] **Manage users** → filter by Patients/Doctors, search by name.
+- [ ] **Suspend** a test patient → logging in as them says "This account has been suspended". **Reactivate** → login works again.
+
+## 15. Role checks
 
 - [ ] Logged in as the patient, open `/doctor` and `/admin` → you're sent back to /patient.
 - [ ] Logged in as Doctor A, open `/admin` → sent back to /doctor.
