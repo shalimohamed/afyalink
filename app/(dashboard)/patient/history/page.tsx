@@ -42,13 +42,8 @@ async function loadHistory(supabase: SupabaseClient) {
   ]);
 
   const rxList = (prescriptions ?? []) as PrescriptionRow[];
-  // The PDFs are private, so make download links that work for 10 minutes.
-  const paths = rxList.flatMap((p) => (p.pdf_path ? [p.pdf_path] : []));
-  const { data: signed } = paths.length
-    ? await supabase.storage.from("prescriptions").createSignedUrls(paths, 600)
-    : { data: [] };
-  const pdfUrl = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
-  const rxByBooking = new Map(rxList.map((p) => [p.booking_id, { ...p, url: p.pdf_path ? pdfUrl.get(p.pdf_path) : undefined }]));
+  // Downloads go through our route, which checks access and notes the download.
+  const rxByBooking = new Map(rxList.map((p) => [p.booking_id, { ...p, url: p.pdf_path ? `/api/prescriptions/${p.id}/pdf` : undefined }]));
 
   // One timeline, newest first: symptom checks and paid consultations.
   const entries = [

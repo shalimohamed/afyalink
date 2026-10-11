@@ -32,13 +32,29 @@ function relativeTime(iso: string, now: number) {
   return `on ${dayFmt.format(date)} at ${timeFmt.format(date)}`;
 }
 
+type RxRow = { booking_id: string; created_at: string; downloaded_at: string | null };
+
+// The patient's prescriptions, newest first, with when each was downloaded.
+// If migration 0005 (downloaded_at) hasn't been run yet, fall back to treating
+// them as already downloaded, so the dashboard still works.
+async function loadPrescriptions(supabase: SupabaseClient): Promise<{ data: RxRow[] }> {
+  const withDownloads = await supabase
+    .from("prescriptions")
+    .select("booking_id, created_at, downloaded_at")
+    .order("created_at", { ascending: false });
+  if (!withDownloads.error) return { data: (withDownloads.data ?? []) as RxRow[] };
+
+  const { data } = await supabase.from("prescriptions").select("booking_id, created_at").order("created_at", { ascending: false });
+  return { data: ((data ?? []) as Omit<RxRow, "downloaded_at">[]).map((p) => ({ ...p, downloaded_at: p.created_at })) };
+}
+
 export async function loadPatientDashboard(supabase: SupabaseClient, firstName: string) {
   const now = Date.now();
   const [bookings, chats, { count: checkCount }, { data: prescriptions }, { data: reviews }] = await Promise.all([
     loadPatientBookings(supabase),
     loadChats(supabase),
     supabase.from("symptom_checks").select("id", { count: "exact", head: true }),
-    supabase.from("prescriptions").select("booking_id, created_at").order("created_at", { ascending: false }),
+    loadPrescriptions(supabase),
     supabase.from("reviews").select("booking_id"),
   ]);
 
@@ -75,9 +91,10 @@ export async function loadPatientDashboard(supabase: SupabaseClient, firstName: 
       cta: "Check symptoms",
     });
   }
-  const latestRx = (prescriptions ?? [])[0];
-  if (latestRx) {
-    const booking = bookings.find((b) => b.id === latestRx.booking_id);
+  // Only remind about a prescription the patient hasn't downloaded yet.
+  const newRx = (prescriptions ?? []).find((p) => !p.downloaded_at);
+  if (newRx) {
+    const booking = bookings.find((b) => b.id === newRx.booking_id);
     if (booking) {
       messages.push({ text: `Your prescription from ${doctorOf(booking)} is ready to download.`, href: `/patient/bookings/${booking.id}`, cta: "See prescription" });
     }

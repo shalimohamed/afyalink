@@ -19,11 +19,6 @@ export default async function PrescriptionView({ supabase, prescriptionId }: { s
     .maybeSingle<Prescription>();
   if (!p) return null;
 
-  // The bucket is private, so we make a download link that works for 10 minutes.
-  const { data: signed } = p.pdf_path
-    ? await supabase.storage.from("prescriptions").createSignedUrl(p.pdf_path, 600, { download: "AfyaLink-prescription.pdf" })
-    : { data: null };
-
   return (
     <div className="panel prescription">
       <small className="label">Issued {formatDate(p.created_at)}</small>
@@ -37,8 +32,10 @@ export default async function PrescriptionView({ supabase, prescriptionId }: { s
         ))}
       </ul>
       {p.notes && <span>{p.notes}</span>}
-      {signed?.signedUrl && (
-        <a href={signed.signedUrl} className="btn btn-primary">
+      {p.pdf_path && (
+        // Goes through our route, which checks access, notes the patient's
+        // download and then hands over a short-lived link to the private file.
+        <a href={`/api/prescriptions/${prescriptionId}/pdf`} className="btn btn-primary">
           Download PDF
         </a>
       )}
