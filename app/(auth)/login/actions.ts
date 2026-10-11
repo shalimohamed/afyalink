@@ -28,6 +28,9 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
+  if (error?.code === "user_banned") {
+    return { errors: {}, values: { email }, message: "This account has been suspended. Please contact AfyaLink support." };
+  }
   if (error?.code === "email_not_confirmed") {
     return { errors: {}, values: { email }, message: "Please confirm your email first. Check your inbox for the link." };
   }

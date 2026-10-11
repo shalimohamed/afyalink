@@ -22,14 +22,14 @@ export default async function AdminHome() {
       <p className="sub">Analytics are coming in a later phase.</p>
 
       <div className="panels">
-        <div className="panel">
+        <Link href="/admin/users?role=patient" className="panel panel-link">
           <b>{patients.count ?? 0}</b>
-          <span>Patients</span>
-        </div>
-        <div className="panel">
+          <span>Patients →</span>
+        </Link>
+        <Link href="/admin/users?role=doctor" className="panel panel-link">
           <b>{doctors.count ?? 0}</b>
-          <span>Doctors</span>
-        </div>
+          <span>Doctors →</span>
+        </Link>
         <Link href="/admin/doctors" className="panel panel-link">
           <b>{pending.count ?? 0}</b>
           <span>Doctors waiting for verification →</span>
