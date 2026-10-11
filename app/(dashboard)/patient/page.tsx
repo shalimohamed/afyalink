@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "My AfyaLink" };
 export default async function PatientHome() {
   const { supabase, profile } = await requireRole("patient");
   const firstName = profile.full_name.split(" ")[0];
-  const { messages, journey, next } = await loadPatientDashboard(supabase, firstName);
+  const { messages, journey, next } = await loadPatientDashboard(supabase, profile.id, firstName);
 
   return (
     <>

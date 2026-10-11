@@ -48,11 +48,11 @@ async function loadPrescriptions(supabase: SupabaseClient): Promise<{ data: RxRo
   return { data: ((data ?? []) as Omit<RxRow, "downloaded_at">[]).map((p) => ({ ...p, downloaded_at: p.created_at })) };
 }
 
-export async function loadPatientDashboard(supabase: SupabaseClient, firstName: string) {
+export async function loadPatientDashboard(supabase: SupabaseClient, userId: string, firstName: string) {
   const now = Date.now();
   const [bookings, chats, { count: checkCount }, { data: prescriptions }, { data: reviews }] = await Promise.all([
     loadPatientBookings(supabase),
-    loadChats(supabase),
+    loadChats(supabase, userId),
     supabase.from("symptom_checks").select("id", { count: "exact", head: true }),
     loadPrescriptions(supabase),
     supabase.from("reviews").select("booking_id"),
@@ -103,10 +103,14 @@ export async function loadPatientDashboard(supabase: SupabaseClient, firstName: 
   if (toReview) {
     messages.push({ text: `How was your consultation with ${doctorOf(toReview)}? Your rating helps other patients.`, href: `/patient/bookings/${toReview.id}`, cta: "Rate it" });
   }
-  const openChat = chats.find((c) => c.state === "open");
+  // Only while there's something new in the chat; opening it clears this.
+  const openChat = chats.find((c) => c.state === "open" && c.needsAttention);
   if (openChat?.closesAt) {
+    const until = timeFmt.format(new Date(openChat.closesAt));
     messages.push({
-      text: `Dr. ${openChat.doctor?.profile.full_name} accepted your chat. It's open until ${timeFmt.format(new Date(openChat.closesAt))}.`,
+      text: openChat.unread
+        ? `Dr. ${openChat.doctor?.profile.full_name} sent you a message. Your chat is open until ${until}.`
+        : `Dr. ${openChat.doctor?.profile.full_name} accepted your chat. It's open until ${until}.`,
       href: `/chat/${openChat.id}`,
       cta: "Open chat",
     });

@@ -5,6 +5,7 @@ The SQL lives in `supabase/migrations/`:
 
 - `0001_tables.sql`: the 14 tables, keys, constraints and indexes
 - `0002_security.sql`: row-level security, the signup trigger, database functions, storage and realtime
+- `0006_chat_read_tracking.sql`: `chat_requests.patient_last_read_at` and `doctor_last_read_at` (when each side last opened the chat), `mark_chat_read()` and `unread_chat_messages()`. "Unread" isn't stored; it's worked out from these times and the messages' `created_at`.
 - `0005_prescription_downloaded_at.sql`: adds `prescriptions.downloaded_at`, when the patient first downloaded the PDF (a fact about the prescription itself). It's written only by the server's download route, after an access check.
 - `0004_admin_analytics.sql`: `admin_analytics()`, which gives the admin dashboard **aggregated numbers only** (counts, sums, averages). Admins still can't read any individual symptom check or prescription.
 - `0003_drop_video_room_url.sql`: removes `bookings.video_room_url`. The video room name is derived from the booking ID (`consult-<id>`), so storing it would duplicate data.

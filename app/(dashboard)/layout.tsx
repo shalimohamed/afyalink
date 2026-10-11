@@ -8,19 +8,28 @@ import { HOME_FOR_ROLE, requireUser } from "@/lib/auth";
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { supabase, profile } = await requireUser();
 
-  let links: NavLink[];
-  if (profile.role === "doctor") {
-    // Show how many follow-up chat requests are waiting for an answer.
+  // The Chats badge: unread messages sent to me (0 if migration 0006 hasn't
+  // been run), plus, for doctors, chat requests waiting for an answer. The
+  // menu keeps it up to date in the browser after this first value.
+  const isDoctor = profile.role === "doctor";
+  const { data: unread } = await supabase.rpc("unread_chat_messages");
+  let chatBadge = typeof unread === "number" ? unread : 0;
+  if (isDoctor) {
     const { count } = await supabase
       .from("chat_requests")
       .select("id", { count: "exact", head: true })
       .eq("doctor_id", profile.id)
       .eq("status", "pending");
+    chatBadge += count ?? 0;
+  }
+
+  let links: NavLink[];
+  if (isDoctor) {
     links = [
       { href: "/doctor", label: "Dashboard", exact: true },
       { href: "/doctor/slots", label: "Availability" },
       { href: "/doctor/consultations", label: "Consultations" },
-      { href: "/chat", label: "Chats", badge: count ?? 0 },
+      { href: "/chat", label: "Chats", chatBadge: true },
     ];
   } else if (profile.role === "admin") {
     links = [
@@ -34,7 +43,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       { href: "/patient/check", label: "Check symptoms" },
       { href: "/patient/doctors", label: "Find a doctor" },
       { href: "/patient/bookings", label: "Consultations" },
-      { href: "/chat", label: "Chats" },
+      { href: "/chat", label: "Chats", chatBadge: true },
       { href: "/patient/history", label: "History" },
     ];
   }
@@ -46,7 +55,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <span className="mark" aria-hidden="true" />
           AfyaLink
         </Link>
-        <DashboardNav links={links} />
+        <DashboardNav links={links} userId={profile.id} isDoctor={isDoctor} initialChatBadge={chatBadge} />
         <form action={logout}>
           <button className="btn btn-ghost">Log out</button>
         </form>

@@ -15,7 +15,7 @@ const STATE_TAG: Record<ChatState, string> = { waiting: "paying", open: "booked"
 export default async function ChatsPage() {
   const { supabase, profile } = await requireUser();
   const isDoctor = profile.role === "doctor";
-  const chats = await loadChats(supabase);
+  const chats = await loadChats(supabase, profile.id);
 
   return (
     <>
@@ -45,7 +45,7 @@ export default async function ChatsPage() {
                   </Link>
                 </b>
                 {last ? (
-                  <span className={fromOther ? "last-msg unread" : "last-msg"}>
+                  <span className={chat.unread ? "last-msg unread" : "last-msg"}>
                     {fromOther ? "" : "You: "}
                     {last.body.length > 80 ? `${last.body.slice(0, 80)}…` : last.body} · {formatTime(last.created_at)}
                   </span>
@@ -61,6 +61,7 @@ export default async function ChatsPage() {
                   </>
                 ) : (
                   <>
+                    {chat.unread && <span className="tag rejected">New</span>}
                     {chat.state === "open" && (
                       <Link href={`/chat/${chat.id}`} className="btn btn-primary">
                         {fromOther ? "Reply" : "Open chat"}

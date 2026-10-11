@@ -15,8 +15,12 @@ const timeFormat = new Intl.DateTimeFormat("en-KE", { timeZone: "Africa/Nairobi"
 export default async function ChatPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { supabase, profile } = await requireUser();
-  const chat = await loadChat(supabase, id); // RLS: only the patient and doctor of this chat
+  const chat = await loadChat(supabase, id, profile.id); // RLS: only the patient and doctor of this chat
   if (!chat) notFound();
+
+  // Opening the chat marks it as read for this user (clears the unread badge
+  // and the dashboard reminder). Ignored if migration 0006 hasn't been run.
+  await supabase.rpc("mark_chat_read", { p_chat_request_id: chat.id });
 
   const isDoctor = profile.id === chat.doctor_id;
   const otherName = isDoctor ? chat.patient?.profile.full_name : `Dr. ${chat.doctor?.profile.full_name}`;

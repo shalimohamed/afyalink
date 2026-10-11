@@ -73,6 +73,21 @@ export default function ChatRoom({
     };
   }, [chatId, supabase]);
 
+  // A message from the other person that arrives while you're looking at the
+  // chat counts as read. Also mark it read when you come back to the tab.
+  const last = messages[messages.length - 1];
+  const lastFromOther = last && last.sender_id !== myId ? last.id : null;
+  useEffect(() => {
+    const markRead = async () => {
+      if (document.visibilityState !== "visible") return;
+      await supabase.rpc("mark_chat_read", { p_chat_request_id: chatId });
+      window.dispatchEvent(new Event("afyalink:chat-read")); // updates the menu badge
+    };
+    if (lastFromOther) markRead();
+    document.addEventListener("visibilitychange", markRead);
+    return () => document.removeEventListener("visibilitychange", markRead);
+  }, [lastFromOther, chatId, supabase]);
+
   // Close the chat box when the 3 hours run out.
   useEffect(() => {
     if (!closesAt) return;
