@@ -3,15 +3,12 @@
 import Link from "next/link";
 import { useState, useSyncExternalStore } from "react";
 import { nairobiToday } from "@/lib/time";
+import { parseWellness, readWellness, subscribeWellness, writeWellness as write } from "@/lib/wellnessStore";
 
 // Daily mood + water check-in with a streak. Saved only in this browser
-// (localStorage): nothing is sent to our servers, so it isn't medical data
-// we have to protect. If storage is blocked (private mode), it still works
-// for this visit.
+// (see lib/wellnessStore.ts). If storage is blocked (private mode), it still
+// works for this visit.
 
-type Wellness = { day: string; mood: number | null; water: number; streak: number; lastCheckIn: string | null };
-
-const KEY = "afyalink-wellness";
 const WATER_GOAL = 8;
 const MOODS = [
   { emoji: "😞", label: "Very low" },
@@ -21,58 +18,10 @@ const MOODS = [
   { emoji: "😄", label: "Great" },
 ];
 
-// A tiny store around localStorage that React can subscribe to.
-let memoryCopy: string | null = null;
-const listeners = new Set<() => void>();
-function read(): string | null {
-  try {
-    return window.localStorage.getItem(KEY);
-  } catch {
-    return memoryCopy;
-  }
-}
-function write(value: Wellness) {
-  memoryCopy = JSON.stringify(value);
-  try {
-    window.localStorage.setItem(KEY, memoryCopy);
-  } catch {
-    // storage blocked: keep the in-memory copy
-  }
-  listeners.forEach((l) => l());
-}
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  window.addEventListener("storage", listener);
-  return () => {
-    listeners.delete(listener);
-    window.removeEventListener("storage", listener);
-  };
-}
-
-function yesterdayOf(day: string) {
-  const d = new Date(`${day}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() - 1);
-  return d.toISOString().slice(0, 10);
-}
-
-// Today's state; a new day starts with no mood and no water, keeping the streak.
-function parse(raw: string | null, today: string): Wellness {
-  let saved: Wellness | null = null;
-  try {
-    saved = raw ? (JSON.parse(raw) as Wellness) : null;
-  } catch {
-    saved = null;
-  }
-  if (!saved) return { day: today, mood: null, water: 0, streak: 0, lastCheckIn: null };
-  if (saved.day === today) return saved;
-  const streakAlive = saved.lastCheckIn === yesterdayOf(today) || saved.lastCheckIn === today;
-  return { day: today, mood: null, water: 0, streak: streakAlive ? saved.streak : 0, lastCheckIn: saved.lastCheckIn };
-}
-
 export default function WellnessCheckin() {
-  const raw = useSyncExternalStore(subscribe, read, () => null);
+  const raw = useSyncExternalStore(subscribeWellness, readWellness, () => null);
   const today = nairobiToday();
-  const state = parse(raw, today);
+  const state = parseWellness(raw, today);
   const [celebrate, setCelebrate] = useState(0);
 
   const setMood = (mood: number) => {
@@ -88,7 +37,7 @@ export default function WellnessCheckin() {
   const mood = state.mood === null ? null : MOODS[state.mood];
 
   return (
-    <section className="wellness" aria-label="Daily wellness check-in">
+    <section className="wellness" id="checkin" aria-label="Daily wellness check-in">
       <div className="journey-head">
         <b>Daily check-in</b>
         <span className="streak" title="Days in a row you've checked in">

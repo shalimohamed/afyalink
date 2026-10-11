@@ -4,6 +4,8 @@ import { loadPatientBookings } from "@/lib/bookings";
 import { loadChats } from "@/lib/chats";
 import { TIME_ZONE } from "@/lib/time";
 
+// Health tips. Daktari shows only TIPS_AT_ONCE of them, and a different set
+// every TIP_INTERVAL_HOURS, so returning patients see something new.
 const HEALTH_TIPS = [
   "Aim for about 8 glasses of water a day, and more when it's hot or you're unwell.",
   "Sleeping under a treated mosquito net is one of the best ways to prevent malaria.",
@@ -11,28 +13,63 @@ const HEALTH_TIPS = [
   "With diarrhoea, sip ORS (oral rehydration salts). See a doctor if it lasts more than 2 days or there's blood.",
   "Feeling stressed? A 10-minute walk and talking to someone you trust both really help.",
   "Chest pain, trouble breathing or heavy bleeding? Don't wait for an appointment. Call 999 or 112.",
+  "Finish the full course of antibiotics your doctor prescribes, even if you feel better sooner.",
+  "Adults need 7 to 9 hours of sleep. A regular bedtime makes a big difference.",
+  "Eat a rainbow: sukuma wiki, carrots, tomatoes and fruit give you vitamins your body needs.",
+  "Boil or treat drinking water when you're not sure it's clean, especially in the rainy season.",
+  "Get your blood pressure checked at least once a year. High blood pressure often has no symptoms.",
+  "30 minutes of brisk walking most days lowers your risk of diabetes and heart disease.",
+  "Cut down on added salt and sugar. Check the labels on packaged foods and drinks.",
+  "Wear sunscreen or a hat in strong sun. Skin can burn even on cloudy days.",
+  "Keep your vaccinations up to date, and make sure children's clinic cards are complete.",
+  "Brush your teeth twice a day with fluoride toothpaste and see a dentist once a year.",
+  "Take breaks from your phone screen: every 20 minutes, look at something far away for 20 seconds.",
+  "Smoking and shisha harm your lungs and heart. Free help to quit is available. Ask your doctor.",
 ];
+const TIPS_AT_ONCE = 3;
+const TIP_INTERVAL_HOURS = 3;
 
 export type JourneyStep = { key: string; label: string; done: boolean; href: string };
 
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
 const timeFmt = new Intl.DateTimeFormat("en-KE", { timeZone: TIME_ZONE, hour: "2-digit", minute: "2-digit", hour12: false });
 const dayFmt = new Intl.DateTimeFormat("en-KE", { timeZone: TIME_ZONE, weekday: "long", day: "numeric", month: "short" });
+const weekdayFmt = new Intl.DateTimeFormat("en-KE", { timeZone: TIME_ZONE, weekday: "long" });
+const hourFmt = new Intl.DateTimeFormat("en-GB", { timeZone: TIME_ZONE, hour: "numeric", hourCycle: "h23" });
+
+// "Habari za asubuhi" (morning), "za mchana" (afternoon), "za jioni" (evening).
+function swahiliGreeting(now: number) {
+  const hour = Number(hourFmt.format(new Date(now)));
+  if (hour < 12) return "Habari za asubuhi";
+  if (hour < 16) return "Habari za mchana";
+  return "Habari za jioni";
+}
 
 // "in 45 minutes", "today at 14:00", "tomorrow at 09:00", "on Monday, 14 Oct at 11:00"
 function relativeTime(iso: string, now: number) {
   const date = new Date(iso);
-  const minutes = Math.round((date.getTime() - now) / 60000);
+  const minutes = Math.round((date.getTime() - now) / MINUTE);
   if (minutes <= 0) return "now";
   if (minutes < 60) return `in ${minutes} minute${minutes === 1 ? "" : "s"}`;
   const day = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE }).format(d);
-  const today = day(new Date(now));
-  const tomorrow = day(new Date(now + 86400000));
-  if (day(date) === today) return `today at ${timeFmt.format(date)}`;
-  if (day(date) === tomorrow) return `tomorrow at ${timeFmt.format(date)}`;
+  if (day(date) === day(new Date(now))) return `today at ${timeFmt.format(date)}`;
+  if (day(date) === day(new Date(now + DAY))) return `tomorrow at ${timeFmt.format(date)}`;
   return `on ${dayFmt.format(date)} at ${timeFmt.format(date)}`;
 }
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 type RxRow = { booking_id: string; created_at: string; downloaded_at: string | null };
+type CheckRow = {
+  id: string;
+  created_at: string;
+  symptoms: string;
+  urgency: "routine" | "within_24_hours" | "emergency";
+  red_flag_triggered: boolean;
+  specialties: { label: string } | null;
+};
 
 // The patient's prescriptions, newest first, with when each was downloaded.
 // If migration 0005 (downloaded_at) hasn't been run yet, fall back to treating
@@ -48,14 +85,22 @@ async function loadPrescriptions(supabase: SupabaseClient): Promise<{ data: RxRo
   return { data: ((data ?? []) as Omit<RxRow, "downloaded_at">[]).map((p) => ({ ...p, downloaded_at: p.created_at })) };
 }
 
-export async function loadPatientDashboard(supabase: SupabaseClient, userId: string, firstName: string) {
+export async function loadPatientDashboard(
+  supabase: SupabaseClient,
+  user: { id: string; firstName: string; phone: string | null },
+) {
   const now = Date.now();
-  const [bookings, chats, { count: checkCount }, { data: prescriptions }, { data: reviews }] = await Promise.all([
+  const [bookings, chats, checks, { data: prescriptions }, { data: reviews }, { data: details }] = await Promise.all([
     loadPatientBookings(supabase),
-    loadChats(supabase, userId),
-    supabase.from("symptom_checks").select("id", { count: "exact", head: true }),
+    loadChats(supabase, user.id),
+    supabase
+      .from("symptom_checks")
+      .select("id, created_at, symptoms, urgency, red_flag_triggered, specialties(label)", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .limit(1),
     loadPrescriptions(supabase),
     supabase.from("reviews").select("booking_id"),
+    supabase.from("patients").select("date_of_birth").eq("id", user.id).maybeSingle<{ date_of_birth: string | null }>(),
   ]);
 
   const doctorOf = (b: (typeof bookings)[number]) => (b.slot.doctor ? `Dr. ${b.slot.doctor.profile.full_name}` : "your doctor");
@@ -65,10 +110,11 @@ export async function loadPatientDashboard(supabase: SupabaseClient, userId: str
   const past = bookings.filter((b) => b.state === "past");
   const reviewed = new Set((reviews ?? []).map((r) => r.booking_id));
   const next = upcoming[0] ?? null;
+  const latestCheck = ((checks.data ?? []) as unknown as CheckRow[])[0] ?? null;
 
   // The patient's progress through AfyaLink, in order.
   const journey: JourneyStep[] = [
-    { key: "check", label: "Check symptoms", done: (checkCount ?? 0) > 0, href: "/patient/check" },
+    { key: "check", label: "Check symptoms", done: (checks.count ?? 0) > 0, href: "/patient/check" },
     { key: "book", label: "Book a doctor", done: bookings.length > 0, href: "/patient/doctors" },
     { key: "pay", label: "Pay with M-Pesa", done: bookings.some((b) => b.status === "confirmed"), href: "/patient/bookings" },
     { key: "consult", label: "Video consultation", done: past.length > 0, href: next ? `/patient/bookings/${next.id}` : "/patient/bookings" },
@@ -78,47 +124,133 @@ export async function loadPatientDashboard(supabase: SupabaseClient, userId: str
 
   // Daktari's messages: what matters right now first, then tips.
   const messages: CompanionMessage[] = [];
+  const hello = `${swahiliGreeting(now)}, ${user.firstName}!`;
+
+  // 1. Greeting, with the next consultation or a nudge to get started.
   if (next) {
     messages.push({
-      text: `Habari, ${firstName}! I'm Daktari. Your video consultation with ${doctorOf(next)} is ${relativeTime(next.slot.starts_at, now)}.`,
+      text: `${hello} I'm Daktari. Your video consultation with ${doctorOf(next)} is ${relativeTime(next.slot.starts_at, now)}.`,
       href: `/patient/bookings/${next.id}`,
       cta: "View booking",
     });
   } else {
     messages.push({
-      text: `Habari, ${firstName}! I'm Daktari, your AfyaLink guide. Not feeling well? Tap where it hurts on the body map, or describe your symptoms.`,
+      text: `${hello} I'm Daktari, your AfyaLink guide. Not feeling well? Tap where it hurts on the body map, or describe your symptoms.`,
       href: "/patient/check",
       cta: "Check symptoms",
     });
   }
-  // Only remind about a prescription the patient hasn't downloaded yet.
-  const newRx = (prescriptions ?? []).find((p) => !p.downloaded_at);
-  if (newRx) {
-    const booking = bookings.find((b) => b.id === newRx.booking_id);
-    if (booking) {
-      messages.push({ text: `Your prescription from ${doctorOf(booking)} is ready to download.`, href: `/patient/bookings/${booking.id}`, cta: "See prescription" });
+
+  // 2. The video call is open, or about to open (it opens 15 minutes early).
+  if (next) {
+    const start = new Date(next.slot.starts_at).getTime();
+    const end = new Date(next.slot.ends_at).getTime();
+    if (now >= start - 15 * MINUTE && now <= end + 30 * MINUTE) {
+      messages.push({ text: `Your video call with ${doctorOf(next)} is open now. Join whenever you're ready.`, href: `/consultation/${next.id}`, cta: "Join call" });
+    } else if (start - now <= HOUR) {
+      const opensIn = Math.max(1, Math.round((start - 15 * MINUTE - now) / MINUTE));
+      messages.push({
+        text: `Your call with ${doctorOf(next)} opens in ${plural(opensIn, "minute")}. Find a quiet spot and check your camera and microphone.`,
+        href: `/patient/bookings/${next.id}`,
+        cta: "View booking",
+      });
     }
   }
+
+  // 3. A slot held for payment: time left, or a failed payment to retry.
+  const held = bookings.find((b) => b.state === "held");
+  if (held) {
+    const minutesLeft = Math.max(1, Math.ceil((new Date(held.holdExpiresAt).getTime() - now) / MINUTE));
+    const payment = held.latestPayment;
+    messages.push({
+      text:
+        payment?.status === "failed"
+          ? `Your M-Pesa payment for ${doctorOf(held)} didn't go through. You still have ${plural(minutesLeft, "minute")} to try again.`
+          : payment?.status === "pending"
+            ? `Check your phone: M-Pesa is waiting for your PIN to pay ${doctorOf(held)}.`
+            : `You have ${plural(minutesLeft, "minute")} left to pay for your slot with ${doctorOf(held)}.`,
+      href: `/patient/bookings/${held.id}`,
+      cta: payment?.status === "pending" ? "View payment" : "Pay now",
+    });
+  }
+
+  // 4. Chats: closing soon, something new, or declined.
+  for (const chat of chats) {
+    const doctor = `Dr. ${chat.doctor?.profile.full_name ?? ""}`.trim();
+    if (chat.state === "open" && chat.closesAt) {
+      const minutesLeft = Math.round((new Date(chat.closesAt).getTime() - now) / MINUTE);
+      const until = timeFmt.format(new Date(chat.closesAt));
+      if (minutesLeft <= 30) {
+        messages.push({ text: `Your chat with ${doctor} closes in ${plural(Math.max(1, minutesLeft), "minute")}. Ask anything you still need now.`, href: `/chat/${chat.id}`, cta: "Open chat" });
+      } else if (chat.needsAttention) {
+        messages.push({
+          text: chat.unread ? `${doctor} sent you a message. Your chat is open until ${until}.` : `${doctor} accepted your chat. It's open until ${until}.`,
+          href: `/chat/${chat.id}`,
+          cta: "Open chat",
+        });
+      }
+    } else if (chat.state === "rejected" && chat.needsAttention && chat.responded_at && now - new Date(chat.responded_at).getTime() < 7 * DAY) {
+      messages.push({ text: `${doctor} can't take a follow-up chat right now. A short video consultation is the best way to talk.`, href: `/patient/doctors/${chat.doctor_id}`, cta: "Book" });
+    }
+  }
+
+  // 5. A prescription not downloaded yet.
+  const newRx = (prescriptions ?? []).find((p) => !p.downloaded_at);
+  const rxBooking = newRx ? bookings.find((b) => b.id === newRx.booking_id) : undefined;
+  if (rxBooking) {
+    messages.push({ text: `Your prescription from ${doctorOf(rxBooking)} is ready to download.`, href: `/patient/bookings/${rxBooking.id}`, cta: "See prescription" });
+  }
+
+  // 6. A finished consultation not rated yet.
   const toReview = past.find((b) => !reviewed.has(b.id));
   if (toReview) {
     messages.push({ text: `How was your consultation with ${doctorOf(toReview)}? Your rating helps other patients.`, href: `/patient/bookings/${toReview.id}`, cta: "Rate it" });
   }
-  // Only while there's something new in the chat; opening it clears this.
-  const openChat = chats.find((c) => c.state === "open" && c.needsAttention);
-  if (openChat?.closesAt) {
-    const until = timeFmt.format(new Date(openChat.closesAt));
+
+  // 7. Check in 2–7 days after a consultation, unless they've already asked the
+  //    doctor a follow-up question since then.
+  const recentVisit = past.find((b) => {
+    const since = now - new Date(b.slot.ends_at).getTime();
+    const askedSince = chats.some((c) => c.doctor_id === b.slot.doctor_id && c.created_at > b.slot.ends_at);
+    return since >= 2 * DAY && since <= 7 * DAY && !askedSince;
+  });
+  if (recentVisit) {
     messages.push({
-      text: openChat.unread
-        ? `Dr. ${openChat.doctor?.profile.full_name} sent you a message. Your chat is open until ${until}.`
-        : `Dr. ${openChat.doctor?.profile.full_name} accepted your chat. It's open until ${until}.`,
-      href: `/chat/${openChat.id}`,
-      cta: "Open chat",
+      text: `How are you feeling since your visit with ${doctorOf(recentVisit)} on ${weekdayFmt.format(new Date(recentVisit.slot.starts_at))}? You can send them a free follow-up question.`,
+      href: `/patient/bookings/${recentVisit.id}`,
+      cta: "Ask a question",
     });
   }
-  // Start the tips at a different one each day.
-  const dayNumber = Math.floor(now / 86400000);
-  for (let i = 0; i < HEALTH_TIPS.length; i++) {
-    messages.push({ text: `Health tip: ${HEALTH_TIPS[(dayNumber + i) % HEALTH_TIPS.length]}` });
+
+  // 8. Follow up on the latest symptom check.
+  if (latestCheck) {
+    const age = now - new Date(latestCheck.created_at).getTime();
+    const emergency = latestCheck.red_flag_triggered || latestCheck.urgency === "emergency";
+    const bookedSince = bookings.some((b) => b.created_at > latestCheck.created_at);
+    if (emergency && age < 7 * DAY) {
+      messages.push({ text: "We hope you got help at the hospital. When you're feeling better, a follow-up video consultation can help with your recovery.", href: "/patient/doctors", cta: "Find a doctor" });
+    } else if (!emergency && !bookedSince && age < 3 * DAY) {
+      const snippet = latestCheck.symptoms.length > 50 ? `${latestCheck.symptoms.slice(0, 50)}…` : latestCheck.symptoms;
+      const when = age < DAY ? "Earlier today" : `On ${weekdayFmt.format(new Date(latestCheck.created_at))}`;
+      messages.push({
+        text: `${when} you checked “${snippet}”. Still unwell? ${latestCheck.specialties ? `A ${latestCheck.specialties.label.toLowerCase()}` : "A doctor"} can see you by video.`,
+        href: `/patient/check/${latestCheck.id}`,
+        cta: "See doctors",
+      });
+    }
+  }
+
+  // 9. Missing details (common after signing up with Google).
+  const missing = [!user.phone && "M-Pesa number", !details?.date_of_birth && "date of birth"].filter(Boolean);
+  if (missing.length) {
+    messages.push({ text: `Add your ${missing.join(" and ")} so payments and prescriptions go smoothly.`, href: "/patient/history", cta: "Add details" });
+  }
+
+  // 10. Three health tips, a different three every few hours.
+  const setCount = Math.ceil(HEALTH_TIPS.length / TIPS_AT_ONCE);
+  const set = Math.floor(now / (TIP_INTERVAL_HOURS * HOUR)) % setCount;
+  for (const tip of HEALTH_TIPS.slice(set * TIPS_AT_ONCE, set * TIPS_AT_ONCE + TIPS_AT_ONCE)) {
+    messages.push({ text: `Health tip: ${tip}`, kind: "tip" });
   }
 
   return {
