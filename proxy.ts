@@ -5,6 +5,11 @@ import { NextResponse, type NextRequest } from "next/server";
 // checked again in each dashboard (see lib/auth.ts).
 const PROTECTED = ["/patient", "/doctor", "/admin", "/consultation", "/chat"];
 
+// Pages for logged-out visitors. Someone already logged in is sent to their
+// own dashboard instead (e.g. when they click the AfyaLink logo).
+const LOGGED_OUT_ONLY = ["/", "/login", "/register"];
+const DASHBOARD: Record<string, string> = { patient: "/patient", doctor: "/doctor", admin: "/admin" };
+
 // Proxy runs on the server before every page request (it used to be called
 // "middleware" in older Next.js). It keeps the Supabase login fresh, because
 // login tokens expire after an hour, and sends logged-out visitors to /login.
@@ -34,6 +39,21 @@ export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   if (!loggedIn && PROTECTED.some((p) => path === p || path.startsWith(p + "/"))) {
     return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  if (loggedIn && LOGGED_OUT_ONLY.includes(path)) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", data!.claims.sub)
+      .maybeSingle<{ role: string }>();
+    // No profile (e.g. a deleted account with an old cookie): just show the page.
+    if (profile && DASHBOARD[profile.role]) {
+      const redirect = NextResponse.redirect(new URL(DASHBOARD[profile.role], request.url));
+      // Keep any refreshed login cookies.
+      response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+      return redirect;
+    }
   }
 
   return response;
