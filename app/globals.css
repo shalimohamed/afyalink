@@ -259,6 +259,8 @@ code{font-family:var(--mono);font-size:.9em}
 .bubble.system{background:var(--alert-soft);border-color:transparent}
 .bubble small{font-size:11px;opacity:.7;justify-self:end}
 .bubble span{white-space:pre-wrap;overflow-wrap:anywhere}
+.last-msg{overflow:hidden;text-overflow:ellipsis}
+.last-msg.unread{color:var(--ink);font-weight:600}
 .chat-form{display:flex;gap:8px}
 .chat-form input{flex:1;min-width:0;font:inherit;font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:11px 16px}
 .chat-form .btn{font-family:inherit;cursor:pointer}

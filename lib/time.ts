@@ -19,6 +19,12 @@ export function formatDate(iso: string) {
   return dayFormat.format(new Date(iso));
 }
 
+// "Mon, 14 Oct 10:05"
+export function formatTime(iso: string) {
+  const date = new Date(iso);
+  return `${dayFormat.format(date)} ${timeFormat.format(date)}`;
+}
+
 // Today's date in Nairobi as YYYY-MM-DD (the format <input type="date"> uses).
 export function nairobiToday() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE }).format(new Date());

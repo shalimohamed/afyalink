@@ -31,27 +31,44 @@ export default function ChatRoom({
   const bottomRef = useRef<HTMLDivElement>(null);
   const [supabase] = useState(createClient);
 
-  // Listen for new messages in this chat.
+  // Listen for new messages in this chat (Realtime), and as a safety net also
+  // re-check the database every 5 seconds, in case the live connection drops
+  // (laptop sleep, weak Wi-Fi). Messages are merged by id, so none show twice.
   useEffect(() => {
     let cancelled = false;
+    const addMessages = (incoming: Message[]) =>
+      setMessages((current) => {
+        const known = new Set(current.map((m) => m.id));
+        const fresh = incoming.filter((m) => !known.has(m.id));
+        return fresh.length ? [...current, ...fresh].sort((a, b) => a.created_at.localeCompare(b.created_at)) : current;
+      });
+
     const channel = supabase.channel(`chat-${chatId}`);
     (async () => {
-      await supabase.auth.getSession(); // load the login so Realtime can check RLS
-      await supabase.realtime.setAuth();
+      const { data } = await supabase.auth.getSession(); // load the login so Realtime can check RLS
+      await supabase.realtime.setAuth(data.session?.access_token);
       if (cancelled) return;
       channel
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "messages", filter: `chat_request_id=eq.${chatId}` },
-          (payload) => {
-            const message = payload.new as Message;
-            setMessages((current) => (current.some((m) => m.id === message.id) ? current : [...current, message]));
-          },
+          (payload) => addMessages([payload.new as Message]),
         )
         .subscribe();
     })();
+
+    const poll = setInterval(async () => {
+      const { data } = await supabase
+        .from("messages")
+        .select("id, sender_id, body, created_at")
+        .eq("chat_request_id", chatId)
+        .order("created_at");
+      if (!cancelled && data) addMessages(data as Message[]);
+    }, 5000);
+
     return () => {
       cancelled = true;
+      clearInterval(poll);
       supabase.removeChannel(channel);
     };
   }, [chatId, supabase]);

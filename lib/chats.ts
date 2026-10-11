@@ -15,9 +15,14 @@ type Row = {
   doctor_id: string;
   patient: { profile: { full_name: string } } | null;
   doctor: { profile: { full_name: string } } | null;
+  messages?: { body: string; sender_id: string; created_at: string }[];
 };
 
-export type Chat = Row & { state: ChatState; closesAt: string | null };
+export type Chat = Row & {
+  state: ChatState;
+  closesAt: string | null;
+  lastMessage: { body: string; sender_id: string; created_at: string } | null;
+};
 
 const SELECT =
   "id, status, created_at, responded_at, patient_id, doctor_id, " +
@@ -28,14 +33,22 @@ function shape(row: Row, now: number): Chat {
   let state: ChatState = "waiting";
   if (row.status === "rejected") state = "rejected";
   else if (row.status === "accepted") state = closesAt && closesAt.getTime() > now ? "open" : "closed";
-  return { ...row, state, closesAt: closesAt?.toISOString() ?? null };
+  return { ...row, state, closesAt: closesAt?.toISOString() ?? null, lastMessage: row.messages?.[0] ?? null };
 }
 
-// The logged-in user's chat requests (RLS: only their own), newest first.
+// The logged-in user's chat requests (RLS: only their own) with each chat's
+// newest message, most recent activity first.
 export async function loadChats(supabase: SupabaseClient): Promise<Chat[]> {
   const now = Date.now();
-  const { data } = await supabase.from("chat_requests").select(SELECT).order("created_at", { ascending: false });
-  return ((data ?? []) as unknown as Row[]).map((row) => shape(row, now));
+  const { data } = await supabase
+    .from("chat_requests")
+    .select(`${SELECT}, messages(body, sender_id, created_at)`)
+    .order("created_at", { referencedTable: "messages", ascending: false })
+    .limit(1, { referencedTable: "messages" });
+  const activity = (chat: Chat) => chat.lastMessage?.created_at ?? chat.responded_at ?? chat.created_at;
+  return ((data ?? []) as unknown as Row[])
+    .map((row) => shape(row, now))
+    .sort((a, b) => activity(b).localeCompare(activity(a)));
 }
 
 export async function loadChat(supabase: SupabaseClient, chatId: string): Promise<Chat | null> {
