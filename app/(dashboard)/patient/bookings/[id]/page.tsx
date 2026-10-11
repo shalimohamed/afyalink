@@ -12,6 +12,7 @@ import { checkPayment } from "../actions";
 import HoldTimer from "./HoldTimer";
 import PaymentWatcher from "./PaymentWatcher";
 import PayForm from "./PayForm";
+import ReviewForm from "./ReviewForm";
 
 export const metadata: Metadata = { title: "Your booking · AfyaLink" };
 
@@ -22,6 +23,11 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
   if (!booking) notFound();
   // Paid bookings: call times, prescription.
   const consultation = booking.status === "confirmed" ? await loadConsultation(supabase, booking.id) : null;
+  const { data: review } = await supabase
+    .from("reviews")
+    .select("rating, comment")
+    .eq("booking_id", booking.id)
+    .maybeSingle<{ rating: number; comment: string | null }>();
 
   const doctorName = booking.slot.doctor?.profile.full_name;
   const payment = booking.latestPayment;
@@ -103,6 +109,21 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
             <>
               <h2 className="section-title">Your prescription</h2>
               <PrescriptionView supabase={supabase} prescriptionId={consultation.prescription.id} />
+            </>
+          )}
+
+          {booking.state === "past" && (
+            <>
+              <h2 className="section-title">Rate your consultation</h2>
+              {review ? (
+                <div className="panel">
+                  <b aria-label={`${review.rating} out of 5 stars`}>{"★".repeat(review.rating) + "☆".repeat(5 - review.rating)}</b>
+                  {review.comment && <span>{review.comment}</span>}
+                  <span>Thanks for your review.</span>
+                </div>
+              ) : (
+                <ReviewForm bookingId={booking.id} />
+              )}
             </>
           )}
 

@@ -25,6 +25,10 @@ export default async function DoctorHome() {
     .select("registration_number, fee_type, fee_kes, verification_status, licence_path, rejection_reason, specialties(label)")
     .eq("id", profile.id)
     .single<DoctorRow>();
+  const { data: ratings } = await supabase.rpc("get_doctor_ratings");
+  const myRating = ((ratings ?? []) as { doctor_id: string; average_rating: number; review_count: number }[]).find(
+    (r) => r.doctor_id === profile.id,
+  );
   const { count: pendingChats } = await supabase
     .from("chat_requests")
     .select("id", { count: "exact", head: true })
@@ -62,6 +66,10 @@ export default async function DoctorHome() {
         <div className="panel">
           <b>Registration number</b>
           <span>{doctor?.registration_number}</span>
+        </div>
+        <div className="panel">
+          <b>{myRating ? `★ ${Number(myRating.average_rating).toFixed(1)}` : "No ratings yet"}</b>
+          <span>{myRating ? `Average from ${myRating.review_count} patient review${Number(myRating.review_count) === 1 ? "" : "s"}` : "Patients can rate you after a consultation"}</span>
         </div>
         <div className="panel">
           <b>Your fee</b>

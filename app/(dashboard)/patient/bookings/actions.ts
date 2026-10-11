@@ -11,6 +11,30 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 const HOLD_MS = 5 * 60 * 1000; // same 5 minutes as in the database functions
 
+// Patient rates a finished consultation (1–5 stars, optional comment).
+export async function submitReview(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+  const { supabase } = await requireRole("patient");
+  const bookingId = String(formData.get("bookingId") ?? "");
+  const rating = Number(formData.get("rating"));
+  const comment = String(formData.get("comment") ?? "").trim();
+
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) return { error: "Choose from 1 to 5 stars." };
+  if (comment.length > 1000) return { error: "Please keep your comment under 1,000 characters." };
+
+  // RLS only allows a review of your own paid consultation once it has ended,
+  // and the unique booking_id allows one review per consultation.
+  const { error } = await supabase.from("reviews").insert({ booking_id: bookingId, rating, comment: comment || null });
+  if (error?.code === "23505") return { error: "You've already reviewed this consultation." };
+  if (error?.code === "42501") return { error: "You can review a consultation once it has ended." };
+  if (error) {
+    console.error("Saving review failed:", error);
+    return { error: "We couldn't save your review. Please try again." };
+  }
+
+  revalidatePath(`/patient/bookings/${bookingId}`);
+  return {};
+}
+
 // Patient clicks "Book" on a slot: hold it for 5 minutes and go to payment.
 export async function holdSlot(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
   const { supabase } = await requireRole("patient");
