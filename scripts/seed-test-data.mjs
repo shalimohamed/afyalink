@@ -126,20 +126,23 @@ async function main() {
       .upload(licencePath, placeholderCertificate(d.name, d.reg), { contentType: "application/pdf", upsert: true });
     if (uploadError) throw uploadError;
 
+    // The pending test doctor is only set to "pending" when first created, so
+    // re-running the seed doesn't undo an admin's approval or rejection.
+    const statusUpdate = d.verified
+      ? { verification_status: "verified", reviewed_at: new Date().toISOString(), rejection_reason: null }
+      : created
+        ? { verification_status: "pending", reviewed_at: null, reviewed_by: null, rejection_reason: null }
+        : {};
     const { error: updateError } = await supabase
       .from("doctors")
-      .update({
-        bio: d.bio,
-        licence_path: licencePath,
-        ...(d.verified
-          ? { verification_status: "verified", reviewed_at: new Date().toISOString(), rejection_reason: null }
-          : { verification_status: "pending", reviewed_at: null, reviewed_by: null, rejection_reason: null }),
-      })
+      .update({ bio: d.bio, licence_path: licencePath, ...statusUpdate })
       .eq("id", id);
     if (updateError) throw updateError;
 
-    const slots = d.verified ? await addSlots(id, d.minutes) : 0;
-    rows.push({ Doctor: `Dr. ${d.name}`, Email: d.email, Specialty: d.specialty, Fee: `KES ${d.fee} ${d.feeType === "per_hour" ? "/hour" : "/session"}`, Status: d.verified ? "verified" : "PENDING", "New slots": slots, Account: created ? "created" : "already existed" });
+    const { data: current } = await supabase.from("doctors").select("verification_status").eq("id", id).single();
+    const isVerified = current?.verification_status === "verified";
+    const slots = isVerified ? await addSlots(id, d.minutes) : 0;
+    rows.push({ Doctor: `Dr. ${d.name}`, Email: d.email, Specialty: d.specialty, Fee: `KES ${d.fee} ${d.feeType === "per_hour" ? "/hour" : "/session"}`, Status: current?.verification_status ?? "?", "New slots": slots, Account: created ? "created" : "already existed" });
   }
 
   // Admin: created as a normal user, then promoted. Signup can never make admins.
