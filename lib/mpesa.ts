@@ -100,6 +100,10 @@ export async function queryStkPush(checkoutRequestId: string): Promise<{ status:
     });
     if (data.ResultCode === undefined) return { status: "pending" };
     const resultCode = Number(data.ResultCode);
+    // 4999 = "The transaction is still under processing": not an answer yet.
+    if (resultCode === 4999 || /under processing|being processed/i.test(data.ResultDesc ?? "")) {
+      return { status: "pending" };
+    }
     return { status: resultCode === 0 ? "success" : "failed", resultCode, resultDesc: data.ResultDesc };
   } catch (error) {
     console.error("STK query:", error);

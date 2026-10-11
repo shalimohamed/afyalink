@@ -14,21 +14,30 @@ export type PaymentResult = {
 // the booking. This is the ONLY place a booking becomes "confirmed", and only
 // with a result from Safaricom, never because the browser says so.
 // It uses the service-role client because payments and bookings can't be
-// written by users. Safe to call twice for the same payment: the second call
-// does nothing.
+// written by users. Safe to call twice for the same payment: a repeat does
+// nothing, except that a "paid" result always wins over an earlier "failed"
+// (Safaricom's success is final), and a success is never undone.
 export async function recordPaymentResult(result: PaymentResult) {
   const admin = createAdminClient();
 
   const { data: payment } = await admin
     .from("payments")
-    .select("id, booking_id, status, bookings(amount_kes)")
+    .select("id, booking_id, status, mpesa_receipt, bookings(amount_kes)")
     .eq("checkout_request_id", result.checkoutRequestId)
-    .maybeSingle<{ id: string; booking_id: string; status: string; bookings: { amount_kes: number } }>();
+    .maybeSingle<{ id: string; booking_id: string; status: string; mpesa_receipt: string | null; bookings: { amount_kes: number } }>();
   if (!payment) {
     console.error("Payment result for an unknown CheckoutRequestID:", result.checkoutRequestId);
     return;
   }
-  if (payment.status !== "pending") return; // already recorded
+
+  if (payment.status === "success") {
+    // Already paid. The callback may bring the receipt code that a status check didn't have.
+    if (result.success && result.receipt && !payment.mpesa_receipt) {
+      await admin.from("payments").update({ mpesa_receipt: result.receipt }).eq("id", payment.id);
+    }
+    return;
+  }
+  if (payment.status === "failed" && !result.success) return; // nothing new
 
   const { error: paymentError } = await admin
     .from("payments")
@@ -40,7 +49,7 @@ export async function recordPaymentResult(result: PaymentResult) {
       completed_at: new Date().toISOString(),
     })
     .eq("id", payment.id)
-    .eq("status", "pending");
+    .eq("status", payment.status); // only if nobody changed it in the meantime
   if (paymentError) {
     console.error("Saving payment result failed:", paymentError);
     return;
