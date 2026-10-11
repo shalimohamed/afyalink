@@ -28,7 +28,7 @@ export default async function CheckPage({ searchParams }: { searchParams: Promis
         or call <strong>999 / 112</strong> now.
       </p>
 
-      <CheckForm initialSymptoms={symptoms.slice(0, 500)} />
+      <CheckForm initialSymptoms={symptoms.slice(0, 2000)} />
     </>
   );
 }

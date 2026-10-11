@@ -14,8 +14,9 @@ const RULES: { id: string; label: string; patterns: RegExp[] }[] = [
     label: "Chest pain or pressure",
     patterns: [
       /chest\s*(pain|pains|tight\w*|pressure|hurts?|ache|aching|discomfort)/,
-      // e.g. "a tight feeling in my chest": the words may be a few apart
-      /(pain|tight|pressure|heav|squeez|ache|hurt|burn)\w*\b.{0,25}\bchest/,
+      // e.g. "a tight feeling in my chest": the words may be a few apart, but
+      // in the same sentence (so "Head: body aches. Chest: cough." isn't chest pain)
+      /(pain|tight|pressure|heav|squeez|ache|hurt|burn)\w*\b[^.!?;]{0,25}\bchest/,
       /heart\s*attack/,
     ],
   },
@@ -45,7 +46,7 @@ const RULES: { id: string; label: string; patterns: RegExp[] }[] = [
     label: "Sudden weakness, numbness or confusion",
     patterns: [
       // e.g. "suddenly my left arm went weak"
-      /sudden\w*\b.{0,40}\b(weak|numb|confus|paralys|slurr|can'?t (speak|talk|move|see))/,
+      /sudden\w*\b[^.!?;]{0,40}\b(weak|numb|confus|paralys|slurr|can'?t (speak|talk|move|see))/,
       /(face|mouth) (is )?(droop|drooping|twisted)/,
       /slurr\w* (speech|words)/,
       /(one side|half) of (my |the )?(body|face)/,
