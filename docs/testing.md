@@ -14,14 +14,17 @@ Only type **made-up symptoms**. The free Gemini tier may use them to improve Goo
 - [ ] Terminal 2 (only needed for step 7): `ngrok http 3000 --url https://partition-grout-surreal.ngrok-free.dev`
 - [ ] Use **two browser windows**: a normal one for the patient, and a private/incognito one for the doctor and admin. Then you don't have to keep logging in and out.
 
-Test accounts to create (any emails work; nothing is sent):
+**Shortcut:** `npm run seed` creates ready-made test accounts (password for all: `AfyaLink-Test-2026`):
 
 | Who | Email | Notes |
 |---|---|---|
-| Patient | `patient1@test.com` | your real Safaricom number (for the M-Pesa prompt) |
-| Doctor A | `doctor1@test.com` | **General practitioner**, per session, **KES 100**, any small PDF as certificate |
-| Doctor B | `doctor2@test.com` | any specialty, never approved (to check unverified doctors stay hidden) |
-| Admin | `admin@test.com` | created in Supabase (step 3) |
+| Dr. Amina Otieno | `dr.amina@afyalink.test` | **General practitioner, KES 100**, verified, slots for 5 days. Use her for payment tests. |
+| 5 more verified doctors | `dr.kiprop@`, `dr.wanjiru@`, `dr.mwangi@`, `dr.hassan@`, `dr.ochieng@` (all `@afyalink.test`) | dermatology, psychology (per hour), paediatrics, gynaecology, ENT |
+| Dr. Lucy Njeri | `dr.njeri@afyalink.test` | psychiatry, **pending**: must stay hidden from patients until the admin approves |
+| Admin | `admin@afyalink.test` | |
+| Patient | register yourself, or use **Continue with Google** | use your real Safaricom number when paying |
+
+With the seed data you can skip creating accounts in steps 2–3 and use Dr. Njeri for the admin review tests. Still try registering one doctor by hand once, to test the form and certificate upload.
 
 ---
 
