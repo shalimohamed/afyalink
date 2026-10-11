@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { checkSymptoms, type CheckState } from "./actions";
 
-export default function CheckForm() {
+export default function CheckForm({ initialSymptoms = "" }: { initialSymptoms?: string }) {
   const [state, formAction, pending] = useActionState<CheckState, FormData>(checkSymptoms, {});
 
   return (
@@ -14,7 +14,8 @@ export default function CheckForm() {
           name="symptoms"
           rows={6}
           maxLength={2000}
-          defaultValue={state.symptoms}
+          defaultValue={state.symptoms ?? initialSymptoms}
+          autoFocus={Boolean(initialSymptoms)}
           placeholder="For example: I've had an itchy red rash on my arms for a week. It gets worse at night."
           required
         />

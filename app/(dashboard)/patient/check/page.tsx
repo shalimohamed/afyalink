@@ -5,8 +5,10 @@ import CheckForm from "./CheckForm";
 
 export const metadata: Metadata = { title: "Check your symptoms · AfyaLink" };
 
-export default async function CheckPage() {
+export default async function CheckPage({ searchParams }: { searchParams: Promise<{ symptoms?: string }> }) {
   await requireRole("patient");
+  // Symptoms picked on the dashboard's body map arrive in the address.
+  const { symptoms = "" } = await searchParams;
 
   return (
     <>
@@ -26,7 +28,7 @@ export default async function CheckPage() {
         or call <strong>999 / 112</strong> now.
       </p>
 
-      <CheckForm />
+      <CheckForm initialSymptoms={symptoms.slice(0, 500)} />
     </>
   );
 }
