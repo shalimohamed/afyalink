@@ -79,7 +79,7 @@ DAILY_API_KEY=
   - Follow-up chat is **free**.
   - **Accepted:** chat is open for **3 hours**. When that time runs out, it closes, and the doctor has to accept or reject again.
 - **Admin accounts** can't be chosen at registration. They're created directly in the database.
-- **On hold (not now):** extra features (passing the symptom-check result to the doctor, a demo seed script, a red-flag yes/no checklist, Swahili input, a consent screen, red-flag tests).
+- **On hold (not now):** extra features (passing the symptom-check result to the doctor, a red-flag yes/no checklist, Swahili input, a consent screen, red-flag tests).
 
 ## Build plan (7 weeks)
 1. **Setup and database:** Supabase project, tables, RLS, and auth with the three roles (patient / doctor / admin), plus `/register` and `/login` pages.
