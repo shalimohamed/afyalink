@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import ColumnChart from "@/components/charts/ColumnChart";
+import Companion from "@/components/companion/Companion";
+import Countdown from "@/components/dashboard/Countdown";
+import DayTimeline from "@/components/dashboard/DayTimeline";
 import { requireRole } from "@/lib/auth";
-import { formatKes } from "@/lib/time";
+import { loadDoctorDashboard } from "@/lib/doctorDashboard";
+import { formatKes, formatSlot } from "@/lib/time";
 import LicenceForm from "./LicenceForm";
 
 export const metadata: Metadata = { title: "Doctor dashboard · AfyaLink" };
@@ -34,6 +39,9 @@ export default async function DoctorHome() {
     .select("id", { count: "exact", head: true })
     .eq("doctor_id", profile.id)
     .eq("status", "pending");
+  const dashboard = await loadDoctorDashboard(supabase, profile.id, doctor?.verification_status ?? "pending", pendingChats ?? 0);
+  const weekTotal = dashboard.week.reduce((sum, d) => sum + d.kes, 0);
+  const weekCount = dashboard.week.reduce((sum, d) => sum + d.count, 0);
 
   return (
     <>
@@ -56,27 +64,61 @@ export default async function DoctorHome() {
         </p>
       )}
       {doctor && (!doctor.licence_path || doctor.verification_status === "rejected") && <LicenceForm />}
-      {doctor?.verification_status === "verified" && (
-        <p className="notice ok">
-          <strong>You&apos;re verified.</strong> Patients can find you and book your slots.
-        </p>
-      )}
+      <div className="dash-top">
+        <Companion variant="patient" name="Your patients" messages={dashboard.messages} />
+        {dashboard.next ? (
+          <Countdown
+            title="Your next patient"
+            who={dashboard.next.patientName}
+            detail={formatSlot(dashboard.next.startsAt, dashboard.next.endsAt)}
+            startsAt={dashboard.next.startsAt}
+            endsAt={dashboard.next.endsAt}
+            joinHref={`/consultation/${dashboard.next.id}`}
+            viewHref="/doctor/consultations"
+          />
+        ) : (
+          <div className="countdown">
+            <small className="label">Your next patient</small>
+            <b className="countdown-who">No bookings yet</b>
+            <span className="countdown-detail">Patients book the free slots you publish.</span>
+            <div className="speech-actions">
+              <Link href="/doctor/slots" className="btn btn-primary">
+                Add availability
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <DayTimeline dayStart={dashboard.dayStart} slots={dashboard.todaySlots} />
+
+      <div className="dash-grid">
+        <ColumnChart
+          title={`Earnings this week: ${formatKes(weekTotal)} from ${weekCount} consultation${weekCount === 1 ? "" : "s"} (M-Pesa sandbox)`}
+          unit="KES"
+          labelEvery={1}
+          points={dashboard.week.map((d) => ({ key: d.day, label: d.label, value: d.kes }))}
+        />
+        <div className="panels stats">
+          <div className="panel">
+            <small className="label">Rating</small>
+            <b>{myRating ? `★ ${Number(myRating.average_rating).toFixed(1)}` : "—"}</b>
+            <span>{myRating ? `from ${myRating.review_count} patient review${Number(myRating.review_count) === 1 ? "" : "s"}` : "Patients rate you after a consultation"}</span>
+          </div>
+          <div className="panel">
+            <small className="label">Your fee</small>
+            <b>{doctor ? formatKes(doctor.fee_kes) : "—"}</b>
+            <span>{doctor?.fee_type === "per_hour" ? "per hour" : "per session"}</span>
+          </div>
+          <div className="panel">
+            <small className="label">Registration</small>
+            <b className="reg-no">{doctor?.registration_number}</b>
+            <span>{doctor?.verification_status === "verified" ? "✓ Verified by AfyaLink" : "Waiting for verification"}</span>
+          </div>
+        </div>
+      </div>
 
       <div className="panels">
-        <div className="panel">
-          <b>Registration number</b>
-          <span>{doctor?.registration_number}</span>
-        </div>
-        <div className="panel">
-          <b>{myRating ? `★ ${Number(myRating.average_rating).toFixed(1)}` : "No ratings yet"}</b>
-          <span>{myRating ? `Average from ${myRating.review_count} patient review${Number(myRating.review_count) === 1 ? "" : "s"}` : "Patients can rate you after a consultation"}</span>
-        </div>
-        <div className="panel">
-          <b>Your fee</b>
-          <span>
-            {doctor && formatKes(doctor.fee_kes)} {doctor?.fee_type === "per_hour" ? "per hour" : "per session"}
-          </span>
-        </div>
         <Link href="/doctor/slots" className="panel panel-link">
           <b>Availability</b>
           <span>Publish the times patients can book you →</span>

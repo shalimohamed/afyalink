@@ -14,7 +14,17 @@ function niceScale(max: number) {
   return { top: Math.ceil(max / step) * step, step };
 }
 
-export default function ColumnChart({ title, points, unit }: { title: string; points: ColumnPoint[]; unit: string }) {
+export default function ColumnChart({
+  title,
+  points,
+  unit,
+  labelEvery = 2,
+}: {
+  title: string;
+  points: ColumnPoint[];
+  unit: string;
+  labelEvery?: 1 | 2; // label every column, or every other one (for long ranges)
+}) {
   const max = Math.max(0, ...points.map((p) => p.value));
   const { top, step } = niceScale(max);
   const ticks = Array.from({ length: top / step + 1 }, (_, i) => i * step);
@@ -38,7 +48,7 @@ export default function ColumnChart({ title, points, unit }: { title: string; po
           {points.map((p, i) => (
             <div key={p.key} className="col-slot" tabIndex={0} aria-label={`${p.label}: ${p.value} ${unit}`}>
               <div className="col-bar" style={{ height: `${(p.value / top) * 100}%` }}>
-                {i === peak && <span className="col-peak">{p.value}</span>}
+                {i === peak && <span className="col-peak">{p.value.toLocaleString("en-KE")}</span>}
               </div>
               <span className="chart-tip" role="tooltip">
                 <strong>{p.value.toLocaleString("en-KE")}</strong> {unit}
@@ -51,7 +61,7 @@ export default function ColumnChart({ title, points, unit }: { title: string; po
         <div />
         <div className="col-labels" aria-hidden="true">
           {points.map((p, i) => (
-            <span key={p.key}>{i % 2 === points.length % 2 ? "" : p.label}</span>
+            <span key={p.key}>{labelEvery === 2 && i % 2 === points.length % 2 ? "" : p.label}</span>
           ))}
         </div>
       </div>

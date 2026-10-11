@@ -6,6 +6,7 @@ const CLOSES_AFTER_MS = 30 * 60 * 1000;
 type Row = {
   id: string;
   status: string;
+  amount_kes: number;
   patient_id: string;
   slot: {
     starts_at: string;
@@ -26,7 +27,7 @@ export type Consultation = Omit<Row, "prescriptions"> & {
 };
 
 const SELECT =
-  "id, status, patient_id, " +
+  "id, status, amount_kes, patient_id, " +
   "slot:availability_slots(starts_at, ends_at, doctor_id, " +
   "doctor:doctors(registration_number, specialties(label), profile:profiles!doctors_id_fkey(full_name))), " +
   "patient:patients(date_of_birth, sex, profile:profiles(full_name, phone)), " +
