@@ -5,7 +5,7 @@ import Showcase from "@/components/Showcase";
 import doctorPhoto from "@/public/images/doctor.jpg";
 import doctorCallPhoto from "@/public/images/doctor-call.jpg";
 import patientCallPhoto from "@/public/images/patient-call.jpg";
-import patientWavePhoto from "@/public/images/patient-wave.jpg";
+import doctorStethoscopePhoto from "@/public/images/doctor-stethoscope.jpg";
 import paymentPhoto from "@/public/images/payment.jpg";
 
 const steps = [
@@ -72,17 +72,17 @@ export default function Home() {
             <span>Digital prescriptions</span>
           </div>
         </div>
-        {/* A big photo of a patient on a video call. */}
+        {/* A big photo of one of the doctors patients can meet. */}
         <div className="hero-visual">
           <div className="hero-photo">
             <Image
-              src={patientWavePhoto}
-              alt="A young woman smiling and waving at her doctor on a phone video call"
+              src={doctorStethoscopePhoto}
+              alt="A doctor in a white coat putting on a stethoscope"
               fill
               priority
               sizes="(max-width: 900px) 100vw, 560px"
               placeholder="blur"
-              style={{ objectPosition: "50% 18%" }}
+              style={{ objectPosition: "40% 30%" }}
             />
             <span className="hero-chip">
               <span className="live-dot" aria-hidden="true" /> Video consultation
@@ -198,7 +198,7 @@ export default function Home() {
       <footer>
         <span>© 2026 AfyaLink · Nairobi, Kenya</span>
         <span>AfyaLink doesn&apos;t replace emergency care. In an emergency call 999 or 112.</span>
-        <span className="credits">Photos: August de Richelieu, Tessy Agbonome and Ekaterina Bolovtsova on Pexels; Ahmed Nasiru on Unsplash</span>
+        <span className="credits">Photos: August de Richelieu, Tessy Agbonome and Ekaterina Bolovtsova on Pexels; Ahmed Nasiru and Nappy on Unsplash</span>
       </footer>
     </div>
   );
