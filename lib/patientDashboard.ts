@@ -29,7 +29,11 @@ const HEALTH_TIPS = [
 const TIPS_AT_ONCE = 3;
 const TIP_INTERVAL_HOURS = 3;
 
-export type JourneyStep = { key: string; label: string; done: boolean; href: string };
+// "skipped": a step this round didn't need (no symptom check before booking,
+// or no prescription issued). It counts as finished.
+export type JourneyState = "done" | "skipped" | "todo";
+export type JourneyStep = { key: string; label: string; state: JourneyState; href: string };
+export type Journey = { steps: JourneyStep[]; complete: boolean; visible: boolean };
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -85,6 +89,48 @@ async function loadPrescriptions(supabase: SupabaseClient): Promise<{ data: RxRo
   return { data: ((data ?? []) as Omit<RxRow, "downloaded_at">[]).map((p) => ({ ...p, downloaded_at: p.created_at })) };
 }
 
+const nairobiDay = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE }).format(d);
+
+// The care journey follows ONE round of care at a time. A round starts with a
+// new symptom check or a new booking, and is complete once the consultation
+// has happened and the patient has rated it. A completed round stays on the
+// dashboard until midnight that day, then hides until a new round starts.
+function buildJourney(
+  bookings: Awaited<ReturnType<typeof loadPatientBookings>>, // newest first
+  latestCheck: { created_at: string } | null,
+  prescribed: Set<string>, // booking ids with a prescription
+  reviewedAt: Map<string, string>, // booking id → when it was rated
+  now: number,
+): Journey {
+  const active = bookings.filter((b) => b.status !== "cancelled");
+  const latest = active[0] ?? null;
+  // A symptom check newer than the latest booking starts a new round.
+  const booking = latestCheck && (!latest || latestCheck.created_at > latest.created_at) ? null : latest;
+  // That check belongs to this booking's round unless a paid booking came between them.
+  const checkInRound = Boolean(
+    latestCheck &&
+      (!booking ||
+        (latestCheck.created_at <= booking.created_at &&
+          !active.some((b) => b.id !== booking.id && b.status === "confirmed" && b.created_at > latestCheck.created_at && b.created_at < booking.created_at))),
+  );
+
+  const reviewed = booking ? reviewedAt.get(booking.id) : undefined;
+  const consulted = booking?.state === "past";
+  const bookingPage = booking ? `/patient/bookings/${booking.id}` : "/patient/bookings";
+  const steps: JourneyStep[] = [
+    { key: "check", label: "Check symptoms", state: checkInRound ? "done" : booking ? "skipped" : "todo", href: "/patient/check" },
+    { key: "book", label: "Book a doctor", state: booking ? "done" : "todo", href: "/patient/doctors" },
+    { key: "pay", label: "Pay with M-Pesa", state: booking?.status === "confirmed" ? "done" : "todo", href: bookingPage },
+    { key: "consult", label: "Video consultation", state: consulted ? "done" : "todo", href: bookingPage },
+    { key: "rx", label: "Get prescription", state: booking && prescribed.has(booking.id) ? "done" : reviewed ? "skipped" : "todo", href: bookingPage },
+    { key: "review", label: "Rate your doctor", state: reviewed ? "done" : "todo", href: bookingPage },
+  ];
+
+  const complete = Boolean(consulted && reviewed);
+  const visible = !complete || nairobiDay(new Date(reviewed!)) === nairobiDay(new Date(now));
+  return { steps, complete, visible };
+}
+
 export async function loadPatientDashboard(
   supabase: SupabaseClient,
   user: { id: string; firstName: string; phone: string | null },
@@ -95,11 +141,11 @@ export async function loadPatientDashboard(
     loadChats(supabase, user.id),
     supabase
       .from("symptom_checks")
-      .select("id, created_at, symptoms, urgency, red_flag_triggered, specialties(label)", { count: "exact" })
+      .select("id, created_at, symptoms, urgency, red_flag_triggered, specialties(label)")
       .order("created_at", { ascending: false })
       .limit(1),
     loadPrescriptions(supabase),
-    supabase.from("reviews").select("booking_id"),
+    supabase.from("reviews").select("booking_id, created_at"),
     supabase.from("patients").select("date_of_birth").eq("id", user.id).maybeSingle<{ date_of_birth: string | null }>(),
   ]);
 
@@ -112,15 +158,14 @@ export async function loadPatientDashboard(
   const next = upcoming[0] ?? null;
   const latestCheck = ((checks.data ?? []) as unknown as CheckRow[])[0] ?? null;
 
-  // The patient's progress through AfyaLink, in order.
-  const journey: JourneyStep[] = [
-    { key: "check", label: "Check symptoms", done: (checks.count ?? 0) > 0, href: "/patient/check" },
-    { key: "book", label: "Book a doctor", done: bookings.length > 0, href: "/patient/doctors" },
-    { key: "pay", label: "Pay with M-Pesa", done: bookings.some((b) => b.status === "confirmed"), href: "/patient/bookings" },
-    { key: "consult", label: "Video consultation", done: past.length > 0, href: next ? `/patient/bookings/${next.id}` : "/patient/bookings" },
-    { key: "rx", label: "Get prescription", done: (prescriptions ?? []).length > 0, href: "/patient/history" },
-    { key: "review", label: "Rate your doctor", done: reviewed.size > 0, href: past[0] ? `/patient/bookings/${past[0].id}` : "/patient/bookings" },
-  ];
+  // The patient's progress through their current round of care.
+  const journey = buildJourney(
+    bookings,
+    latestCheck,
+    new Set((prescriptions ?? []).map((p) => p.booking_id)),
+    new Map((reviews ?? []).map((r) => [r.booking_id as string, r.created_at as string])),
+    now,
+  );
 
   // Daktari's messages: what matters right now first, then tips.
   const messages: CompanionMessage[] = [];

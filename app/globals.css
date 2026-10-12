@@ -324,6 +324,9 @@ code{font-family:var(--mono);font-size:.9em}
 .journey-dot{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;border:2px solid var(--line);background:var(--bg);color:var(--muted)}
 .journey-steps .done a{color:var(--ink)}
 .journey-steps .done .journey-dot{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.journey-steps .skipped a{color:var(--muted)}
+.journey-steps .skipped .journey-dot{border-style:dashed;color:var(--muted)}
+.journey.is-complete{border-color:var(--accent);background:color-mix(in srgb,var(--soft) 55%,var(--surface))}
 .journey-steps .current a{color:var(--ink);font-weight:600}
 .journey-steps .current .journey-dot{border-color:var(--accent);color:var(--accent);animation:pulse-ring 1.8s infinite}
 @keyframes pulse-ring{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 45%,transparent)}70%{box-shadow:0 0 0 10px transparent}100%{box-shadow:0 0 0 0 transparent}}

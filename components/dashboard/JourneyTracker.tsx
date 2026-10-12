@@ -1,34 +1,36 @@
 import Link from "next/link";
-import type { JourneyStep } from "@/lib/patientDashboard";
+import type { Journey } from "@/lib/patientDashboard";
 
-// The patient's progress through AfyaLink: done steps are ticked, the next
-// step to do pulses gently, and every step links to where it happens.
-export default function JourneyTracker({ steps }: { steps: JourneyStep[] }) {
-  const doneCount = steps.filter((s) => s.done).length;
-  const currentIndex = steps.findIndex((s) => !s.done);
+// The patient's progress through their current round of care: done steps are
+// ticked, skipped steps get a dash, the next step to do pulses gently, and
+// every step links to where it happens.
+export default function JourneyTracker({ journey }: { journey: Journey }) {
+  const { steps, complete } = journey;
+  const finished = steps.filter((s) => s.state !== "todo").length;
+  const currentIndex = steps.findIndex((s) => s.state === "todo");
 
   return (
-    <section className="journey" aria-label="Your AfyaLink journey">
+    <section className={`journey ${complete ? "is-complete" : ""}`} aria-label="Your care journey">
       <div className="journey-head">
-        <b>Your care journey</b>
-        <span>
-          {doneCount} of {steps.length} steps
-        </span>
+        <b>{complete ? "Journey complete 🎉" : "Your care journey"}</b>
+        <span>{complete ? "Thanks for rating your doctor. Get well soon!" : `${finished} of ${steps.length} steps`}</span>
       </div>
       <div className="journey-bar" aria-hidden="true">
-        <i style={{ width: `${(doneCount / steps.length) * 100}%` }} />
+        <i style={{ width: `${(finished / steps.length) * 100}%` }} />
       </div>
       <ol className="journey-steps">
         {steps.map((step, i) => {
-          const state = step.done ? "done" : i === currentIndex ? "current" : "todo";
+          const state = step.state === "todo" && i === currentIndex ? "current" : step.state;
           return (
             <li key={step.key} className={state}>
               <Link href={step.href} aria-current={state === "current" ? "step" : undefined}>
                 <span className="journey-dot" aria-hidden="true">
-                  {step.done ? "✓" : i + 1}
+                  {step.state === "done" ? "✓" : step.state === "skipped" ? "–" : i + 1}
                 </span>
                 <span>{step.label}</span>
-                <span className="sr-only">{step.done ? " (done)" : state === "current" ? " (next step)" : ""}</span>
+                <span className="sr-only">
+                  {step.state === "done" ? " (done)" : step.state === "skipped" ? " (not needed this time)" : state === "current" ? " (next step)" : ""}
+                </span>
               </Link>
             </li>
           );

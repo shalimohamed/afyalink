@@ -47,7 +47,8 @@ export default async function PatientHome() {
         )}
       </div>
 
-      <JourneyTracker steps={journey} />
+      {/* Hidden the day after a round of care is completed, until a new one starts. */}
+      {journey.visible && <JourneyTracker journey={journey} />}
 
       <div className="dash-grid">
         <BodyMap />
