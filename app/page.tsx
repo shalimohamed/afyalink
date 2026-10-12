@@ -5,7 +5,7 @@ import Showcase from "@/components/Showcase";
 import doctorPhoto from "@/public/images/doctor.jpg";
 import mosaicDoctorPhoto from "@/public/images/mosaic-doctor.jpg";
 import mosaicHomePhoto from "@/public/images/mosaic-home.jpg";
-import mosaicPhonePhoto from "@/public/images/mosaic-phone.jpg";
+import mosaicMpesaPhoto from "@/public/images/mosaic-mpesa.jpg";
 import heroDoctorPhoto from "@/public/images/hero-doctor.jpg";
 
 const steps = [
@@ -120,7 +120,7 @@ export default function Home() {
           </figcaption>
         </figure>
         <figure>
-          <Image src={mosaicPhonePhoto} alt="A young man smiling while using his phone outdoors" fill sizes="(max-width: 900px) 100vw, 520px" placeholder="blur" style={{ objectPosition: "50% 26%" }} />
+          <Image src={mosaicMpesaPhoto} alt="Hands holding a phone showing an M-Pesa PIN prompt to pay AfyaLink Health KES 1,500" fill sizes="(max-width: 900px) 100vw, 520px" placeholder="blur" style={{ objectPosition: "50% 100%" }} />
           <figcaption>
             <b>Pay with M-Pesa</b>
             <span>Enter your PIN and your booking is confirmed.</span>
@@ -199,7 +199,7 @@ export default function Home() {
       <footer>
         <span>© 2026 AfyaLink · Nairobi, Kenya</span>
         <span>AfyaLink doesn&apos;t replace emergency care. In an emergency call 999 or 112.</span>
-        <span className="credits">Photos: August de Richelieu, Tessy Agbonome and Ekaterina Bolovtsova on Pexels; Ahmed Nasiru, Vitaly Gariev, vaibhav vivian, Samwel Francis and YouVersion on Unsplash</span>
+        <span className="credits">Photos: August de Richelieu, Tessy Agbonome and Ekaterina Bolovtsova on Pexels; Ahmed Nasiru, Vitaly Gariev, vaibhav vivian, freestocks (phone screen edited) and YouVersion on Unsplash</span>
       </footer>
     </div>
   );
