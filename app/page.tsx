@@ -3,10 +3,10 @@ import Showcase from "@/components/Showcase";
 // Free Pexels/Unsplash photo (credited in the footer). Importing it lets Next.js
 // read its size and generate a blurred placeholder while it loads.
 import doctorPhoto from "@/public/images/doctor.jpg";
-import doctorCallPhoto from "@/public/images/doctor-call.jpg";
-import patientCallPhoto from "@/public/images/patient-call.jpg";
+import mosaicDoctorPhoto from "@/public/images/mosaic-doctor.jpg";
+import mosaicHomePhoto from "@/public/images/mosaic-home.jpg";
+import mosaicPhonePhoto from "@/public/images/mosaic-phone.jpg";
 import doctorPhonePhoto from "@/public/images/doctor-phone.jpg";
-import paymentPhoto from "@/public/images/payment.jpg";
 
 const steps = [
   ["Describe your symptoms", "Type what you're feeling in your own words, English or Kiswahili."],
@@ -112,24 +112,25 @@ export default function Home() {
 
       {/* Photo mosaic: one tall photo and two wide ones, each with a short caption. */}
       <section className="mosaic" aria-label="AfyaLink in everyday life">
+        {/* These three photos are different from the slideshow's on purpose. */}
         <figure className="mosaic-tall">
-          <Image src={doctorCallPhoto} alt="A smiling doctor with a stethoscope waving on a video call" fill sizes="(max-width: 900px) 100vw, 560px" placeholder="blur" style={{ objectPosition: "50% 30%" }} />
+          <Image src={mosaicDoctorPhoto} alt="A doctor with a stethoscope, arms crossed, smiling confidently" fill sizes="(max-width: 900px) 100vw, 560px" placeholder="blur" style={{ objectPosition: "50% 25%" }} />
           <figcaption>
             <b>Doctors you can trust</b>
             <span>Every doctor&apos;s KMPDC registration is checked by our team.</span>
           </figcaption>
         </figure>
         <figure>
-          <Image src={paymentPhoto} alt="A woman smiling and pointing at her phone" fill sizes="(max-width: 900px) 100vw, 520px" placeholder="blur" style={{ objectPosition: "50% 30%" }} />
+          <Image src={mosaicPhonePhoto} alt="A young man smiling while using his phone outdoors" fill sizes="(max-width: 900px) 100vw, 520px" placeholder="blur" style={{ objectPosition: "50% 26%" }} />
           <figcaption>
             <b>Pay with M-Pesa</b>
             <span>Enter your PIN and your booking is confirmed.</span>
           </figcaption>
         </figure>
         <figure>
-          <Image src={patientCallPhoto} alt="A woman smiling during a video call on her phone at home" fill sizes="(max-width: 900px) 100vw, 520px" placeholder="blur" style={{ objectPosition: "50% 40%" }} />
+          <Image src={mosaicHomePhoto} alt="A woman at home in her kitchen, smiling at her phone" fill sizes="(max-width: 900px) 100vw, 520px" placeholder="blur" style={{ objectPosition: "70% 45%" }} />
           <figcaption>
-            <b>Care from your sofa</b>
+            <b>Care from home</b>
             <span>No matatu, no queue, no waiting room.</span>
           </figcaption>
         </figure>
@@ -199,7 +200,7 @@ export default function Home() {
       <footer>
         <span>© 2026 AfyaLink · Nairobi, Kenya</span>
         <span>AfyaLink doesn&apos;t replace emergency care. In an emergency call 999 or 112.</span>
-        <span className="credits">Photos: August de Richelieu, Tessy Agbonome and Ekaterina Bolovtsova on Pexels; Ahmed Nasiru and Vitaly Gariev on Unsplash</span>
+        <span className="credits">Photos: August de Richelieu, Tessy Agbonome and Ekaterina Bolovtsova on Pexels; Ahmed Nasiru, Vitaly Gariev, vaibhav vivian, Samwel Francis and YouVersion on Unsplash</span>
       </footer>
     </div>
   );
