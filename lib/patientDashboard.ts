@@ -91,6 +91,8 @@ async function loadPrescriptions(supabase: SupabaseClient): Promise<{ data: RxRo
 
 const nairobiDay = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE }).format(d);
 
+const CHECK_EXPIRES_MS = 24 * 60 * 60 * 1000;
+
 // The care journey follows ONE round of care at a time. A round starts with a
 // new symptom check or a new booking, and is complete once the consultation
 // has happened and the patient has rated it. A completed round stays on the
@@ -102,16 +104,24 @@ function buildJourney(
   reviewedAt: Map<string, string>, // booking id → when it was rated
   now: number,
 ): Journey {
-  const active = bookings.filter((b) => b.status !== "cancelled");
-  const latest = active[0] ?? null;
+  // Only bookings that still mean something count: one being paid for right
+  // now, or a paid one. A hold that ran out unpaid doesn't count as booked.
+  const valid = bookings.filter((b) => b.state === "held" || b.state === "upcoming" || b.state === "past");
+  const latest = valid[0] ?? null;
+  // A symptom check that nobody booked after within 24 hours is dropped, so
+  // the journey resets. A check followed by a booking stays, however old.
+  const check =
+    latestCheck && ((latest && latest.created_at >= latestCheck.created_at) || now - new Date(latestCheck.created_at).getTime() < CHECK_EXPIRES_MS)
+      ? latestCheck
+      : null;
   // A symptom check newer than the latest booking starts a new round.
-  const booking = latestCheck && (!latest || latestCheck.created_at > latest.created_at) ? null : latest;
+  const booking = check && (!latest || check.created_at > latest.created_at) ? null : latest;
   // That check belongs to this booking's round unless a paid booking came between them.
   const checkInRound = Boolean(
-    latestCheck &&
+    check &&
       (!booking ||
-        (latestCheck.created_at <= booking.created_at &&
-          !active.some((b) => b.id !== booking.id && b.status === "confirmed" && b.created_at > latestCheck.created_at && b.created_at < booking.created_at))),
+        (check.created_at <= booking.created_at &&
+          !valid.some((b) => b.id !== booking.id && b.status === "confirmed" && b.created_at > check.created_at && b.created_at < booking.created_at))),
   );
 
   const reviewed = booking ? reviewedAt.get(booking.id) : undefined;
