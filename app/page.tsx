@@ -6,7 +6,7 @@ import doctorPhoto from "@/public/images/doctor.jpg";
 import mosaicDoctorPhoto from "@/public/images/mosaic-doctor.jpg";
 import mosaicHomePhoto from "@/public/images/mosaic-home.jpg";
 import mosaicPhonePhoto from "@/public/images/mosaic-phone.jpg";
-import doctorPhonePhoto from "@/public/images/doctor-phone.jpg";
+import heroDoctorPhoto from "@/public/images/hero-doctor.jpg";
 
 const steps = [
   ["Describe your symptoms", "Type what you're feeling in your own words, English or Kiswahili."],
@@ -76,14 +76,13 @@ export default function Home() {
         <div className="hero-visual">
           <div className="hero-photo">
             <Image
-              src={doctorPhonePhoto}
-              alt="A doctor in a white coat with a stethoscope, talking to a patient on the phone at a laptop"
+              src={heroDoctorPhoto}
+              alt="A smiling doctor in blue scrubs with a stethoscope, sitting at a desk with a laptop"
               fill
               priority
               sizes="(max-width: 900px) 100vw, 560px"
               placeholder="blur"
-              // The photo is wide; keep the doctor (left of centre) in the tall frame.
-              style={{ objectPosition: "27% 50%" }}
+              style={{ objectPosition: "50% 35%" }}
             />
             <span className="hero-chip">
               <span className="live-dot" aria-hidden="true" /> Video consultation
@@ -200,7 +199,7 @@ export default function Home() {
       <footer>
         <span>© 2026 AfyaLink · Nairobi, Kenya</span>
         <span>AfyaLink doesn&apos;t replace emergency care. In an emergency call 999 or 112.</span>
-        <span className="credits">Photos: August de Richelieu, Tessy Agbonome and Ekaterina Bolovtsova on Pexels; Ahmed Nasiru, Vitaly Gariev, vaibhav vivian, Samwel Francis and YouVersion on Unsplash</span>
+        <span className="credits">Photos: August de Richelieu, Tessy Agbonome and Ekaterina Bolovtsova on Pexels; Ahmed Nasiru, vaibhav vivian, Samwel Francis and YouVersion on Unsplash</span>
       </footer>
     </div>
   );
