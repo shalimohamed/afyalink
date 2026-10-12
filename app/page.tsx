@@ -77,12 +77,12 @@ export default function Home() {
           <div className="hero-photo">
             <Image
               src={heroDoctorPhoto}
-              alt="A smiling doctor in blue scrubs with a stethoscope, sitting at a desk with a laptop"
+              alt="A doctor in a white coat with a stethoscope, writing notes at a desk beside a laptop"
               fill
               priority
               sizes="(max-width: 900px) 100vw, 560px"
               placeholder="blur"
-              style={{ objectPosition: "50% 35%" }}
+              style={{ objectPosition: "50% 45%" }}
             />
             <span className="hero-chip">
               <span className="live-dot" aria-hidden="true" /> Video consultation
@@ -199,7 +199,7 @@ export default function Home() {
       <footer>
         <span>© 2026 AfyaLink · Nairobi, Kenya</span>
         <span>AfyaLink doesn&apos;t replace emergency care. In an emergency call 999 or 112.</span>
-        <span className="credits">Photos: August de Richelieu, Tessy Agbonome and Ekaterina Bolovtsova on Pexels; Ahmed Nasiru, vaibhav vivian, Samwel Francis and YouVersion on Unsplash</span>
+        <span className="credits">Photos: August de Richelieu, Tessy Agbonome and Ekaterina Bolovtsova on Pexels; Ahmed Nasiru, Vitaly Gariev, vaibhav vivian, Samwel Francis and YouVersion on Unsplash</span>
       </footer>
     </div>
   );
