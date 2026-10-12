@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Showcase from "@/components/Showcase";
-import SymptomDemo from "@/components/SymptomDemo";
 // Free Pexels/Unsplash photo (credited in the footer). Importing it lets Next.js
 // read its size and generate a blurred placeholder while it loads.
 import doctorPhoto from "@/public/images/doctor.jpg";
@@ -73,7 +72,7 @@ export default function Home() {
             <span>Digital prescriptions</span>
           </div>
         </div>
-        {/* A big photo with the symptom-checker card overlapping its lower corner. */}
+        {/* A big photo of a patient on a video call. */}
         <div className="hero-visual">
           <div className="hero-photo">
             <Image
@@ -89,7 +88,6 @@ export default function Home() {
               <span className="live-dot" aria-hidden="true" /> Video consultation
             </span>
           </div>
-          <SymptomDemo />
         </div>
       </header>
 
