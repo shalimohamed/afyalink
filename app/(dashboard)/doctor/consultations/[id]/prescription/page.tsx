@@ -33,9 +33,17 @@ export default async function PrescriptionPage({ params }: { params: Promise<{ i
             <ActionButton action={createPrescriptionPdf} fields={{ bookingId: consultation.id }} label="Create PDF" pendingLabel="Creating…" />
           )}
         </>
+      ) : consultation.callWindow === "early" ? (
+        <p className="notice ok">
+          You can write the prescription once the consultation has started. During the call, write it on the{" "}
+          <Link href={`/consultation/${consultation.id}`}>call page</Link>, next to the video.
+        </p>
       ) : (
         <>
-          <p className="notice ok">Once issued, the prescription can&apos;t be changed. The patient can download it as a PDF.</p>
+          <p className="notice ok">
+            Once issued, the prescription can&apos;t be changed, and it completes the consultation. The patient can download
+            it as a PDF.
+          </p>
           <PrescriptionForm bookingId={consultation.id} />
         </>
       )}

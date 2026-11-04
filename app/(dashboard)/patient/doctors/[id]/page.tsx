@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import ActionButton from "@/components/ActionButton";
 import { requireRole } from "@/lib/auth";
 import { getVerifiedDoctors } from "@/lib/doctors";
-import { formatDate, formatKes, formatSlot, slotPrice } from "@/lib/time";
+import { loadCurrentCheck } from "@/lib/symptoms/current";
+import { formatClock, formatDate, formatKes, formatTime, groupByDay, slotPrice } from "@/lib/time";
 import { holdSlot } from "../../bookings/actions";
 
 export const metadata: Metadata = { title: "Book a doctor · AfyaLink" };
@@ -16,17 +17,22 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
   const { id } = await params;
   const { supabase } = await requireRole("patient");
 
-  // getVerifiedDoctors only returns verified doctors, so an unverified or
-  // unknown ID shows "not found".
+  // getVerifiedDoctors only returns verified, unsuspended doctors, so any other
+  // ID shows "not found".
   const [doctor] = await getVerifiedDoctors(supabase, { doctorId: id });
   if (!doctor) notFound();
 
-  const [{ data: slotData }, { data: reviewData }] = await Promise.all([
+  const [{ data: slotData }, { data: reviewData }, currentCheck] = await Promise.all([
     supabase.rpc("get_available_slots", { p_doctor_id: id }),
     supabase.rpc("get_doctor_reviews", { p_doctor_id: id }),
+    loadCurrentCheck(supabase),
   ]);
   const slots = (slotData ?? []) as Slot[];
   const reviews = (reviewData ?? []) as Review[];
+  const minutesOf = (slot: Slot) => (new Date(slot.ends_at).getTime() - new Date(slot.starts_at).getTime()) / 60000;
+  // Usually every slot is the same length (and price), so say it once.
+  const lengths = [...new Set(slots.map(minutesOf))];
+  const oneLength = lengths.length === 1 ? lengths[0] : null;
 
   return (
     <>
@@ -42,28 +48,46 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
       {doctor.bio && <p>{doctor.bio}</p>}
 
       <h2 className="section-title">Available times (Kenyan time)</h2>
-      <p className="empty">Booking a slot holds it for 5 minutes while you pay with M-Pesa.</p>
+      <p className="empty">
+        {oneLength !== null &&
+          `Each consultation is ${oneLength} minutes and costs ${formatKes(slotPrice(doctor.feeType, doctor.feeKes, oneLength))}. `}
+        Tap a time to hold it for 5 minutes while you pay with M-Pesa.
+      </p>
+      {currentCheck && (
+        // Tell the patient what the doctor will see, before they book.
+        <p className="notice ok">
+          Once you&apos;ve paid, Dr. {doctor.fullName} will see the symptoms you checked on {formatTime(currentCheck.created_at)}{" "}
+          (“{currentCheck.symptoms.length > 80 ? `${currentCheck.symptoms.slice(0, 80)}…` : currentCheck.symptoms}”), your age, sex
+          and blood group, so they can prepare. They won&apos;t see your other symptom checks.
+        </p>
+      )}
       {slots.length === 0 && <p className="empty">No free slots right now. Please check again later.</p>}
-      <ul className="list">
-        {slots.map((slot) => {
-          const minutes = (new Date(slot.ends_at).getTime() - new Date(slot.starts_at).getTime()) / 60000;
-          return (
-            <li key={slot.id} className="item">
-              <div className="item-main">
-                <b>{formatSlot(slot.starts_at, slot.ends_at)}</b>
-                <span>{formatKes(slotPrice(doctor.feeType, doctor.feeKes, minutes))}</span>
-              </div>
-              <ActionButton
-                action={holdSlot}
-                fields={{ slotId: slot.id }}
-                label="Book"
-                pendingLabel="Holding…"
-                className="btn btn-primary"
-              />
-            </li>
-          );
-        })}
-      </ul>
+      <div className="slot-days">
+        {groupByDay(slots).map(({ day, items }) => (
+          <section key={day} className="slot-day" aria-label={day}>
+            <h3>{day}</h3>
+            <div className="time-chips">
+              {items.map((slot) => {
+                const minutes = minutesOf(slot);
+                return (
+                  <ActionButton
+                    key={slot.id}
+                    action={holdSlot}
+                    fields={{ slotId: slot.id }}
+                    label={
+                      oneLength !== null
+                        ? formatClock(slot.starts_at)
+                        : `${formatClock(slot.starts_at)} · ${minutes} min · ${formatKes(slotPrice(doctor.feeType, doctor.feeKes, minutes))}`
+                    }
+                    pendingLabel="Holding…"
+                    className="btn btn-primary"
+                  />
+                );
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
 
       {reviews.length > 0 && (
         <>

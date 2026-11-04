@@ -6,7 +6,8 @@ import PrescriptionView from "@/components/PrescriptionView";
 import { requireRole } from "@/lib/auth";
 import { loadPatientBookings } from "@/lib/bookings";
 import { loadConsultation } from "@/lib/consultations";
-import { formatKes, formatSlot } from "@/lib/time";
+import { canJoinCall } from "@/lib/livekit";
+import { formatKes, formatSlot, formatTime } from "@/lib/time";
 import { requestChat } from "@/app/(dashboard)/chat/actions";
 import { checkPayment } from "../actions";
 import HoldTimer from "./HoldTimer";
@@ -23,6 +24,7 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
   if (!booking) notFound();
   // Paid bookings: call times, prescription.
   const consultation = booking.status === "confirmed" ? await loadConsultation(supabase, booking.id) : null;
+  const canJoin = consultation ? await canJoinCall(consultation) : false;
   const { data: review } = await supabase
     .from("reviews")
     .select("rating, comment")
@@ -95,13 +97,25 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
       {consultation && (
         <>
           <div className="notice ok">
-            <strong>{booking.state === "upcoming" ? "Your consultation is booked. 🎉" : "This consultation has ended."}</strong>{" "}
+            <strong>
+              {booking.state === "upcoming"
+                ? "Your consultation is booked. 🎉"
+                : consultation.prescription
+                  ? "Your consultation is complete."
+                  : "This consultation has ended."}
+            </strong>{" "}
             {payment?.mpesa_receipt && <>M-Pesa receipt: <code>{payment.mpesa_receipt}</code>. </>}
             {consultation.callWindow === "early" && "You can join the video call from 15 minutes before the start time."}
           </div>
-          {consultation.callWindow === "open" && (
+          {consultation.symptomCheck && (
+            <p className="empty">
+              Dr. {doctorName} can see the symptoms you checked on {formatTime(consultation.symptomCheck.created_at)}, to
+              prepare for your consultation.
+            </p>
+          )}
+          {canJoin && (
             <Link href={`/consultation/${booking.id}`} className="btn btn-primary">
-              Join video call
+              {consultation.prescription ? "Back to the video call" : "Join video call"}
             </Link>
           )}
 

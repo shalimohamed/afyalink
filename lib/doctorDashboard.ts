@@ -99,7 +99,7 @@ export async function loadDoctorDashboard(
     }
   }
 
-  const upcoming = consultations.filter((c) => c.callWindow !== "ended");
+  const upcoming = consultations.filter((c) => !c.done);
   const next = upcoming[0] ?? null;
   const needPrescription = consultations.filter((c) => c.callWindow === "ended" && !c.prescription);
 
@@ -110,9 +110,11 @@ export async function loadDoctorDashboard(
   }
   if (next) {
     messages.push({
-      text: `Your next patient, ${next.patient?.profile.full_name ?? "a patient"}, is booked ${relative(next.slot.starts_at, now)}.`,
-      href: next.callWindow === "open" ? `/consultation/${next.id}` : "/doctor/consultations",
-      cta: next.callWindow === "open" ? "Join call" : "See consultations",
+      text:
+        `Your next patient, ${next.patient?.profile.full_name ?? "a patient"}, is booked ${relative(next.slot.starts_at, now)}.` +
+        (next.symptomCheck ? " Their symptoms are in the patient file." : ""),
+      href: `/consultation/${next.id}`,
+      cta: next.callWindow === "open" ? "Join call" : "Patient file",
     });
   } else {
     messages.push({ text: "No consultations booked yet. Patients book the free slots you publish.", href: "/doctor/slots", cta: "Add availability" });

@@ -60,7 +60,12 @@ export default async function HistoryPage() {
   const { supabase, profile } = await requireRole("patient");
   const [entries, { data: details }] = await Promise.all([
     loadHistory(supabase),
-    supabase.from("patients").select("date_of_birth, sex").eq("id", profile.id).single<{ date_of_birth: string | null; sex: string | null }>(),
+    // "*" also includes blood_group once migration 0009 has added it.
+    supabase
+      .from("patients")
+      .select("*")
+      .eq("id", profile.id)
+      .single<{ date_of_birth: string | null; sex: string | null; blood_group?: string | null }>(),
   ]);
 
   return (
@@ -76,6 +81,7 @@ export default async function HistoryPage() {
       <DetailsForm
         dateOfBirth={details?.date_of_birth ?? null}
         sex={details?.sex ?? null}
+        bloodGroup={details?.blood_group ?? null}
         phone={profile.phone ? "0" + profile.phone.slice(3) : ""}
         today={nairobiToday()}
       />

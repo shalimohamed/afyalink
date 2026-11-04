@@ -26,6 +26,7 @@ export async function addSlots(_prev: SlotFormState, formData: FormData): Promis
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "Choose a date." };
   if (!/^\d{2}:\d{2}$/.test(time)) return { error: "Choose a start time." };
+  if (Number(time.slice(3)) % 5 !== 0) return { error: "Start times go in 5-minute steps, e.g. 10:05 or 10:10." };
   if (!SLOT_LENGTHS.includes(minutes)) return { error: "Choose how long the consultation is." };
   if (!repeat) return { error: "Choose how often to repeat it." };
 

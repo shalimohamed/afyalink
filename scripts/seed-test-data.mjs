@@ -1,4 +1,4 @@
-// Creates TEST doctors, their availability and an admin account.
+// Creates TEST doctors, their availability, patients and an admin account.
 // Run from the project folder:   npm run seed
 // Safe to run again: existing accounts are reused, and new slots that would
 // overlap existing ones are skipped. Uses the service-role key from
@@ -28,7 +28,58 @@ const DOCTORS = [
     bio: "Ear, nose and throat specialist: sinus problems, sore throats, ear infections and hearing concerns." },
   { email: "dr.njeri@afyalink.test", name: "Lucy Njeri", specialty: "psychiatry", reg: "TEST-PY-007", feeType: "per_hour", fee: 3000, minutes: 60, verified: false,
     bio: "Psychiatrist (waiting for verification, so patients can't see her yet)." },
+  { email: "dr.mutua@afyalink.test", name: "Samuel Mutua", specialty: "dermatology", reg: "TEST-DM-008", feeType: "per_session", fee: 1400, minutes: 30, verified: false,
+    bio: "Dermatologist with 5 years' experience in skin allergies, acne and scalp conditions." },
+  { email: "dr.kamau@afyalink.test", name: "Joseph Kamau", specialty: "general_practice", reg: "TEST-GP-009", feeType: "per_session", fee: 800, minutes: 30, verified: true,
+    bio: "General practitioner focused on adult health, high blood pressure and diabetes follow-up." },
+  { email: "dr.abdi@afyalink.test", name: "Zainab Abdi", specialty: "general_practice", reg: "TEST-GP-010", feeType: "per_session", fee: 900, minutes: 30, verified: true,
+    bio: "Family doctor for coughs, colds, stomach upsets and lab result discussions." },
+  { email: "dr.chebet@afyalink.test", name: "Naomi Chebet", specialty: "dermatology", reg: "TEST-DM-011", feeType: "per_session", fee: 1600, minutes: 30, verified: true,
+    bio: "Dermatologist with an interest in eczema, pigmentation and hair loss." },
+  { email: "dr.kiptoo@afyalink.test", name: "Daniel Kiptoo", specialty: "psychology", reg: "TEST-PS-012", feeType: "per_hour", fee: 1800, minutes: 60, verified: true,
+    bio: "Counselling psychologist supporting students and young professionals with stress and burnout." },
+  { email: "dr.achieng@afyalink.test", name: "Mercy Achieng", specialty: "psychiatry", reg: "TEST-PY-013", feeType: "per_hour", fee: 3500, minutes: 60, verified: true,
+    bio: "Psychiatrist helping with depression, anxiety disorders and sleep problems." },
+  { email: "dr.shah@afyalink.test", name: "Priya Shah", specialty: "paediatrics", reg: "TEST-PD-014", feeType: "per_session", fee: 1400, minutes: 30, verified: true,
+    bio: "Paediatrician for childhood allergies, asthma follow-up and vaccination questions." },
+  { email: "dr.wambui@afyalink.test", name: "Esther Wambui", specialty: "gynaecology", reg: "TEST-GY-015", feeType: "per_session", fee: 1700, minutes: 30, verified: true,
+    bio: "Gynaecologist for family planning, fertility questions and routine women's health." },
+  { email: "dr.wekesa@afyalink.test", name: "Collins Wekesa", specialty: "ent", reg: "TEST-EN-016", feeType: "per_session", fee: 1250, minutes: 30, verified: false,
+    bio: "Ear, nose and throat specialist for allergies, tonsil problems and blocked ears." },
 ];
+
+// Made-up patients. Their logins are <first>.<last>@afyalink.test.
+const PATIENTS = [
+  { name: "Wanjiku Mwangi", sex: "female", born: "1994-03-12" },
+  { name: "Otieno Odhiambo", sex: "male", born: "1988-07-25" },
+  { name: "Njoki Kariuki", sex: "female", born: "1999-11-02" },
+  { name: "Kevin Mutiso", sex: "male", born: "1991-01-30" },
+  { name: "Akinyi Onyango", sex: "female", born: "1985-05-17" },
+  { name: "Brian Kipchumba", sex: "male", born: "2001-09-08" },
+  { name: "Faith Nyambura", sex: "female", born: "1996-12-21" },
+  { name: "Hassan Omar", sex: "male", born: "1979-04-14" },
+  { name: "Amina Yusuf", sex: "female", born: "1990-08-03" },
+  { name: "Dennis Wafula", sex: "male", born: "1983-02-19" },
+  { name: "Cynthia Jepkosgei", sex: "female", born: "2000-06-27" },
+  { name: "Felix Musyoka", sex: "male", born: "1975-10-05" },
+  { name: "Lilian Moraa", sex: "female", born: "1987-03-29" },
+  { name: "Victor Ouma", sex: "male", born: "1997-07-11" },
+  { name: "Rose Wairimu", sex: "female", born: "1968-12-16" },
+  { name: "Ibrahim Abdullahi", sex: "male", born: "1993-05-23" },
+  { name: "Sharon Naliaka", sex: "female", born: "2002-02-08" },
+  { name: "Patrick Njoroge", sex: "male", born: "1972-09-30" },
+  { name: "Beatrice Mumbua", sex: "female", born: "1980-11-13" },
+  { name: "Samuel Kiprotich", sex: "male", born: "1995-04-06" },
+  { name: "Mary Nekesa", sex: "female", born: "1959-01-22" },
+  { name: "Anil Patel", sex: "male", born: "1986-06-15" },
+  { name: "Joy Atieno", sex: "female", born: "1998-10-09" },
+  { name: "George Gitau", sex: "male", born: "1964-08-28" },
+  { name: "Halima Noor", sex: "female", born: "2003-03-17" },
+];
+
+// One per patient above, in the same order (null = doesn't know). Roughly how
+// common each group is in Kenya: mostly O+, A+ and B+.
+const BLOOD_GROUPS = ["O+", "A+", "B+", "O+", null, "A+", "O+", "B+", "AB+", "O+", "A-", "O+", "B+", null, "O+", "A+", "O-", "B+", "O+", "A+", null, "O+", "B-", "A+", "O+"];
 
 const ADMIN = { email: "admin@afyalink.test", name: "AfyaLink Admin" };
 
@@ -145,12 +196,26 @@ async function main() {
     rows.push({ Doctor: `Dr. ${d.name}`, Email: d.email, Specialty: d.specialty, Fee: `KES ${d.fee} ${d.feeType === "per_hour" ? "/hour" : "/session"}`, Status: current?.verification_status ?? "?", "New slots": slots, Account: created ? "created" : "already existed" });
   }
 
+  // The handle_new_user trigger makes these patients because no role is given.
+  const patientRows = [];
+  for (const [i, p] of PATIENTS.entries()) {
+    const email = `${p.name.toLowerCase().replace(" ", ".")}@afyalink.test`;
+    const { id, created } = await ensureUser(email, { full_name: p.name, phone: "254711" + String(i + 1).padStart(6, "0") });
+    const { error } = await supabase.from("patients").update({ date_of_birth: p.born, sex: p.sex }).eq("id", id);
+    if (error) throw error;
+    // Separate, so the seed still works before migration 0009 adds the column.
+    const { error: bloodError } = await supabase.from("patients").update({ blood_group: BLOOD_GROUPS[i] }).eq("id", id);
+    if (bloodError && i === 0) console.warn("Blood groups skipped: run supabase/migrations/0009_patient_file.sql first.");
+    patientRows.push({ Patient: p.name, Email: email, Sex: p.sex, Born: p.born, Account: created ? "created" : "already existed" });
+  }
+
   // Admin: created as a normal user, then promoted. Signup can never make admins.
   const admin = await ensureUser(ADMIN.email, { full_name: ADMIN.name });
   await supabase.from("profiles").update({ role: "admin", full_name: ADMIN.name }).eq("id", admin.id);
   await supabase.from("patients").delete().eq("id", admin.id);
 
   console.table(rows);
+  console.table(patientRows);
   console.log(`\nAdmin: ${ADMIN.email} (${admin.created ? "created" : "already existed"})`);
   console.log(`Password for all test accounts: ${PASSWORD}\n`);
 }

@@ -99,7 +99,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding-block:
 .pin-prompt span{font-family:var(--mono);font-size:14px;color:var(--muted)}
 
 /* shared bits: filter chips, urgency pills, initials avatar, fade-in */
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.chips{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:8px;margin-bottom:14px;padding-block:0}
 .chip{font:inherit;font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer}
 .chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .pill{display:inline-block;font-size:13px;font-weight:600;padding:3px 10px;border-radius:999px;margin-top:4px}
@@ -245,6 +245,20 @@ code{font-family:var(--mono);font-size:.9em}
 .emergency-box ul{margin:0;padding-left:20px}
 .emergency-box .small{font-size:14px;color:var(--muted)}
 .video-frame{width:100%;aspect-ratio:16/10;min-height:420px;border:0;border-radius:18px;background:#000}
+/* Doctor's call page: the video and the prescription side by side */
+.consult-layout{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(340px,1fr);gap:18px;align-items:start}
+.consult-call{display:grid;gap:12px;min-width:0}
+/* LiveKit's control bar doesn't wrap by default, which pushed the call over the prescription panel */
+.consult-call .video-call,.consult-call .lk-room-container,.consult-call .lk-video-conference{min-width:0;max-width:100%}
+.consult-call .lk-control-bar{flex-wrap:wrap;justify-content:center}
+.consult-side{display:grid;gap:12px;align-content:start;min-width:0}
+.consult-side .section-title{margin:0}
+.consult-side .med-row{grid-template-columns:1fr 1fr}
+.consult-side .med-row > .field:first-child{grid-column:1 / -1}
+@media (max-width:1100px){.consult-layout{grid-template-columns:1fr}}
+.patient-file .file-heading{margin-top:10px}
+.patient-file .file-symptoms{margin:2px 0;padding:10px 14px;border-left:3px solid var(--accent);border-radius:8px;background:var(--soft);color:var(--ink);font-size:15px;line-height:1.5}
+.patient-file .pill{justify-self:start}
 .med-row{display:grid;grid-template-columns:1.4fr 1fr 1.1fr 1fr 1.3fr auto;gap:10px;align-items:end}
 .med-row > *{min-width:0}
 .med-row .remove{padding:10px 14px;font-family:inherit;cursor:pointer}
@@ -397,6 +411,15 @@ code{font-family:var(--mono);font-size:.9em}
 .hero-stat span{color:var(--muted);font-size:15px}
 .label{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .stats .panel b{font-family:var(--body);font-weight:600;font-size:28px}
+.ai-overview{display:grid;gap:14px;padding:22px;border-radius:20px;border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line));background:linear-gradient(135deg,var(--soft),var(--surface) 70%)}
+.ai-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.ai-head h2{margin:0;font-size:20px;font-weight:700}
+.ai-head .btn{margin-left:auto;padding:9px 16px;font-size:14px}
+.ai-headline{margin:0;font-size:18px;line-height:1.45;font-weight:600}
+.ai-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:16px}
+.ai-groups ul{margin:6px 0 0;padding-left:18px;list-style:disc;display:grid;gap:6px;font-size:15px;line-height:1.45}
+.ai-note{color:var(--muted);font-size:13px}
+.ai-pending{margin:0;padding:14px;border-radius:12px;color:var(--muted);background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--surface) 80%,transparent),transparent);background-size:200% 100%;animation:shimmer 1.4s infinite}
 .chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:12px}
 .chart{margin:0;padding:20px;border-radius:16px;border:1px solid var(--line);background:var(--surface);display:grid;gap:14px;align-content:start;min-width:0}
 .chart figcaption{font-weight:600;font-size:15px}
@@ -462,4 +485,38 @@ code{font-family:var(--mono);font-size:.9em}
   .row2{grid-template-columns:1fr}
 }
 @media (max-width:900px){.panels,.panels.two,.row3,.med-row{grid-template-columns:1fr}.video-frame{min-height:320px}}
+
+/* Slots grouped by day: time buttons for patients, one compact row each for the doctor */
+.slot-days{display:grid;gap:16px}
+.slot-day{display:grid;gap:8px;padding-block:0} /* not the landing page's big section spacing */
+.slot-day h3{margin:0;font-size:15px;font-weight:700}
+.time-chips{display:flex;flex-wrap:wrap;gap:8px}
+.time-chips .btn{min-width:88px;justify-content:center;padding:11px 16px;font-size:15px;font-variant-numeric:tabular-nums}
+.slot-day .list{gap:8px}
+.slot-row{flex-wrap:nowrap;padding:10px 16px}
+.slot-row .item-actions{align-items:center;flex-wrap:nowrap}
+.slot-row b{font-variant-numeric:tabular-nums}
+
+/* "Install AfyaLink" bar on the dashboards */
+.install-bar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:var(--surface);border:1px solid var(--line)}
+.install-bar p{margin:0;flex:1 1 220px;font-size:14px;line-height:1.45}
+.install-actions{display:flex;gap:8px}
+.install-actions .btn{padding:9px 16px;font-size:14px;font-family:inherit;cursor:pointer}
+
+/* Phones and tablets */
+@media (max-width:900px){
+  /* iPhone Safari zooms the page into any text box with text under 16px */
+  .field input:not([type="radio"]),.field select,.field textarea,.inline-form input,.chat-form input{font-size:16px}
+  /* Every menu link visible (on two lines if needed) instead of some hidden off-screen */
+  .dash-nav{flex-wrap:wrap;overflow-x:visible;justify-content:center;row-gap:6px}
+  .dash-nav a{padding:10px 11px;font-size:13.5px}
+  /* Easier to tap with a finger */
+  .chip{padding:10px 14px;font-size:14px}
+}
+@media (max-width:640px){
+  /* Today's timeline fits the screen instead of scrolling sideways */
+  .day-scroll{padding:0 16px 20px}
+  .day-track{min-width:0}
+  .day-slot{min-width:22px}
+}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}

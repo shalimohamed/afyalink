@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { logout } from "@/app/(auth)/login/actions";
 import DashboardNav, { type NavLink } from "@/components/DashboardNav";
+import InstallPrompt from "@/components/InstallPrompt";
 import { HOME_FOR_ROLE, requireUser } from "@/lib/auth";
 
 // Shared frame for the patient, doctor and admin dashboards, with a menu for
@@ -36,6 +37,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       { href: "/admin", label: "Overview", exact: true },
       { href: "/admin/doctors", label: "Verify doctors" },
       { href: "/admin/users", label: "Users" },
+      { href: "/admin/reviews", label: "Reviews" },
     ];
   } else {
     links = [
@@ -60,7 +62,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <button className="btn btn-ghost">Log out</button>
         </form>
       </nav>
-      <main className="dash">{children}</main>
+      <main className="dash">
+        <InstallPrompt />
+        {children}
+      </main>
       <footer>
         <span>© 2026 AfyaLink · Nairobi, Kenya</span>
         <span>AfyaLink doesn&apos;t replace emergency care. In an emergency call 999 or 112.</span>

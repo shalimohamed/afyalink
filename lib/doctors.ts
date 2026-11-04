@@ -25,6 +25,8 @@ type DoctorRow = {
 // Verified doctors (optionally one specialty, or one doctor by ID) with their
 // average rating. Unverified doctors are never returned: the query asks for
 // verified ones, and row-level security hides them from patients anyway.
+// Suspended doctors are left out too. If migration 0007 hasn't been run yet,
+// the suspended list is just empty and the search still works.
 export async function getVerifiedDoctors(
   supabase: SupabaseClient,
   filter: { specialtyId?: string; doctorId?: string } = {},
@@ -36,12 +38,18 @@ export async function getVerifiedDoctors(
   if (filter.specialtyId) query = query.eq("specialty_id", filter.specialtyId);
   if (filter.doctorId) query = query.eq("id", filter.doctorId);
 
-  const [{ data }, { data: ratings }] = await Promise.all([query, supabase.rpc("get_doctor_ratings")]);
+  const [{ data }, { data: ratings }, { data: suspended }] = await Promise.all([
+    query,
+    supabase.rpc("get_doctor_ratings"),
+    supabase.rpc("get_suspended_doctors"),
+  ]);
   const ratingByDoctor = new Map(
     ((ratings ?? []) as { doctor_id: string; average_rating: number; review_count: number }[]).map((r) => [r.doctor_id, r]),
   );
+  const suspendedIds = new Set(((suspended ?? []) as { doctor_id: string }[]).map((s) => s.doctor_id));
 
   return ((data ?? []) as unknown as DoctorRow[])
+    .filter((d) => !suspendedIds.has(d.id))
     .map((d) => {
       const rating = ratingByDoctor.get(d.id);
       return {

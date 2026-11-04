@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import ActionButton from "@/components/ActionButton";
 import { requireRole } from "@/lib/auth";
-import { formatSlot, nairobiToday } from "@/lib/time";
+import { formatClock, groupByDay, nairobiToday } from "@/lib/time";
 import { deleteSlot } from "./actions";
 import SlotForm from "./SlotForm";
 
@@ -72,23 +72,30 @@ export default async function SlotsPage() {
 
       <h2 className="section-title">Upcoming slots ({slots.length})</h2>
       {slots.length === 0 && <p className="empty">You haven&apos;t added any upcoming slots yet.</p>}
-      <ul className="list">
-        {slots.map((slot) => (
-          <li key={slot.id} className="item">
-            <div className="item-main">
-              <b>{formatSlot(slot.starts_at, slot.ends_at)}</b>
-            </div>
-            {slot.state === "free" ? (
-              <div className="item-actions">
-                <span className="tag free">Free</span>
-                <ActionButton action={deleteSlot} fields={{ slotId: slot.id }} label="Delete" pendingLabel="Deleting…" />
-              </div>
-            ) : (
-              <span className={`tag ${slot.state}`}>{slot.state === "booked" ? "Booked" : "Patient is paying"}</span>
-            )}
-          </li>
+      <div className="slot-days">
+        {groupByDay(slots).map(({ day, items }) => (
+          <section key={day} className="slot-day" aria-label={day}>
+            <h3>{day}</h3>
+            <ul className="list">
+              {items.map((slot) => (
+                <li key={slot.id} className="item slot-row">
+                  <b>
+                    {formatClock(slot.starts_at)}–{formatClock(slot.ends_at)}
+                  </b>
+                  {slot.state === "free" ? (
+                    <div className="item-actions">
+                      <span className="tag free">Free</span>
+                      <ActionButton action={deleteSlot} fields={{ slotId: slot.id }} label="Delete" pendingLabel="Deleting…" />
+                    </div>
+                  ) : (
+                    <span className={`tag ${slot.state}`}>{slot.state === "booked" ? "Booked" : "Patient is paying"}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
         ))}
-      </ul>
+      </div>
     </>
   );
 }

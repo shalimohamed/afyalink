@@ -3,6 +3,7 @@
 import "@livekit/components-styles";
 import { LiveKitRoom, PreJoin, VideoConference, type LocalUserChoices } from "@livekit/components-react";
 import { useState, useSyncExternalStore } from "react";
+import { getCallToken } from "./actions";
 
 // Turns browser camera/microphone errors into instructions a patient can follow.
 function explainMediaError(error: Error | undefined): string {
@@ -25,10 +26,31 @@ function explainMediaError(error: Error | undefined): string {
 // 1. PreJoin: check your camera and microphone before going in.
 // 2. LiveKitRoom + VideoConference: the call itself (video tiles, mute,
 //    camera on/off, screen share, in-call chat, leave).
-export default function VideoCall({ serverUrl, token, displayName }: { serverUrl: string; token: string; displayName: string }) {
+// The access token is fetched when you press Join, not when the page loads,
+// so the page can refresh (e.g. after the prescription) without restarting
+// the call, and every rejoin is checked again on the server.
+export default function VideoCall({ bookingId, serverUrl, displayName }: { bookingId: string; serverUrl: string; displayName: string }) {
   const [choices, setChoices] = useState<LocalUserChoices | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [connecting, setConnecting] = useState(false);
+  const [ended, setEnded] = useState("");
   const [left, setLeft] = useState(false);
   const [problem, setProblem] = useState("");
+
+  async function join(values: LocalUserChoices) {
+    setConnecting(true);
+    setProblem("");
+    const result = await getCallToken(bookingId);
+    setConnecting(false);
+    if (result.token) {
+      setToken(result.token);
+      setChoices(values);
+    } else if (result.ended) {
+      setEnded(result.ended);
+    } else {
+      setProblem(result.error ?? "We couldn't start the video call. Please try again.");
+    }
+  }
 
   // Some browsers can't use the camera at all: pages that aren't https, and
   // the built-in browsers of apps like WhatsApp or Gmail. This can only be
@@ -50,6 +72,8 @@ export default function VideoCall({ serverUrl, token, displayName }: { serverUrl
     );
   }
 
+  if (ended) return <p className="notice ok">{ended}</p>;
+
   if (left) {
     return (
       <div className="notice ok">
@@ -59,6 +83,7 @@ export default function VideoCall({ serverUrl, token, displayName }: { serverUrl
           onClick={() => {
             setLeft(false);
             setChoices(null);
+            setToken(null);
             setProblem("");
           }}
         >
@@ -75,8 +100,13 @@ export default function VideoCall({ serverUrl, token, displayName }: { serverUrl
           {problem}
         </p>
       )}
+      {connecting && (
+        <p className="notice ok" role="status">
+          Connecting…
+        </p>
+      )}
       <div className="video-call" data-lk-theme="default">
-        {choices ? (
+        {choices && token ? (
           <LiveKitRoom
             serverUrl={serverUrl}
             token={token}
@@ -102,7 +132,7 @@ export default function VideoCall({ serverUrl, token, displayName }: { serverUrl
             joinLabel="Join consultation"
             userLabel="Your name"
             onError={(error) => setProblem(explainMediaError(error))}
-            onSubmit={setChoices}
+            onSubmit={join}
           />
         )}
       </div>

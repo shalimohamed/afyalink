@@ -19,6 +19,23 @@ export function formatDate(iso: string) {
   return dayFormat.format(new Date(iso));
 }
 
+// "10:00"
+export function formatClock(iso: string) {
+  return timeFormat.format(new Date(iso));
+}
+
+// Slots grouped by day ("Mon, 14 Oct"), keeping their order. Shorter to
+// scroll through on a phone than one row per slot.
+export function groupByDay<T extends { starts_at: string }>(items: T[]) {
+  const days: { day: string; items: T[] }[] = [];
+  for (const item of items) {
+    const day = formatDate(item.starts_at);
+    if (days.at(-1)?.day === day) days.at(-1)!.items.push(item);
+    else days.push({ day, items: [item] });
+  }
+  return days;
+}
+
 // "Mon, 14 Oct 10:05"
 export function formatTime(iso: string) {
   const date = new Date(iso);
@@ -34,6 +51,13 @@ export function nairobiToday() {
 // function, which is the one that actually charges the patient.
 export function slotPrice(feeType: "per_session" | "per_hour", feeKes: number, minutes: number) {
   return feeType === "per_session" ? feeKes : Math.ceil((feeKes * minutes) / 60);
+}
+
+// Age in whole years from a date of birth (YYYY-MM-DD), on today's date in Nairobi.
+export function ageInYears(dateOfBirth: string) {
+  const [y, m, d] = dateOfBirth.split("-").map(Number);
+  const [ty, tm, td] = nairobiToday().split("-").map(Number);
+  return ty - y - (tm < m || (tm === m && td < d) ? 1 : 0);
 }
 
 export function formatKes(amount: number) {

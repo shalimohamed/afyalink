@@ -5,6 +5,9 @@ The SQL lives in `supabase/migrations/`:
 
 - `0001_tables.sql`: the 14 tables, keys, constraints and indexes
 - `0002_security.sql`: row-level security, the signup trigger, database functions, storage and realtime
+- `0009_patient_file.sql`: `patients.blood_group` (a fact about the patient), and `bookings.symptom_check_id`: the symptom check shared with that booking's doctor, set only by `hold_slot()` (the patient's latest check from the last 24 hours, unless they've paid for a booking since). It's a fact about the booking ("which check its doctor may read"), so it belongs on `bookings`, not on `symptom_checks`. A new policy lets only the doctor of a **paid** booking read that one check (and its conditions); the patient's other checks stay private, and admins still see none.
+- `0008_prescription_completes_consultation.sql`: a consultation is over once the prescription is issued, or (without one) once its slot has ended. `booking_has_ended()` (used by the reviews policy) and the "consultations completed" count in `admin_analytics()` now use that rule. "Over" isn't stored; it's worked out from the slot's end time and whether a prescription exists.
+- `0007_suspended_doctors.sql`: stops suspended doctors appearing in search or being booked (`is_suspended()`, `get_suspended_doctors()`, and new versions of `get_available_slots()` and `hold_slot()`). Suspension isn't stored in our tables; it's read from `auth.users.banned_until`, so there's only one copy.
 - `0006_chat_read_tracking.sql`: `chat_requests.patient_last_read_at` and `doctor_last_read_at` (when each side last opened the chat), `mark_chat_read()` and `unread_chat_messages()`. "Unread" isn't stored; it's worked out from these times and the messages' `created_at`.
 - `0005_prescription_downloaded_at.sql`: adds `prescriptions.downloaded_at`, when the patient first downloaded the PDF (a fact about the prescription itself). It's written only by the server's download route, after an access check.
 - `0004_admin_analytics.sql`: `admin_analytics()`, which gives the admin dashboard **aggregated numbers only** (counts, sums, averages). Admins still can't read any individual symptom check or prescription.
@@ -188,7 +191,7 @@ In the Supabase dashboard, **Database → Schema Visualizer** draws the same dia
 RLS is enabled on **all 14 tables**. With RLS on, a row is hidden unless a policy allows it. In summary:
 - Patients see only their own bookings, payments, symptom checks, prescriptions and chats.
 - Doctors see only bookings for their own slots, and the profiles of their own patients.
-- Unverified doctors and their slots are hidden from patients.
+- Unverified doctors and their slots are hidden from patients. Suspended doctors are left out of search and can't be booked (`hold_slot()` refuses them).
 - Bookings and payments can't be written from the browser at all. Bookings go through `hold_slot()`, which works out the price itself, and payments are written by the server when the M-Pesa callback arrives.
 - Symptom checks and prescriptions aren't visible even to admins (data minimisation under the Kenya Data Protection Act, 2019).
 - Nobody can make themselves an admin: signup only creates patients or doctors.

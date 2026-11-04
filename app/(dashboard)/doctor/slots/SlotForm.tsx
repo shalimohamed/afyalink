@@ -25,7 +25,8 @@ export default function SlotForm({
         </label>
         <label className="field">
           <span>Start time (Kenyan time)</span>
-          <input name="time" type="time" step={900} defaultValue="09:00" required />
+          {/* step is in seconds: 300 = start times in 5-minute steps (09:00, 09:05, 09:10…) */}
+          <input name="time" type="time" step={300} defaultValue="09:00" required />
         </label>
         <label className="field">
           <span>Length</span>

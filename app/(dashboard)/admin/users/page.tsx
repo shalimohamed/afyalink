@@ -9,6 +9,7 @@ import { setSuspended } from "./actions";
 export const metadata: Metadata = { title: "Users · AfyaLink" };
 
 type ProfileRow = { id: string; role: "patient" | "doctor" | "admin"; full_name: string; phone: string | null; created_at: string };
+type RatingRow = { doctor_id: string; average_rating: number; review_count: number };
 
 const FILTERS = [
   { value: "all", label: "All" },
@@ -25,7 +26,8 @@ async function loadUsers(supabase: Awaited<ReturnType<typeof requireRole>>["supa
   let query = supabase.from("profiles").select("id, role, full_name, phone, created_at").order("created_at", { ascending: false });
   if (role !== "all") query = query.eq("role", role);
   if (q.trim()) query = query.ilike("full_name", `%${q.trim()}%`);
-  const { data } = await query;
+  const [{ data }, { data: ratings }] = await Promise.all([query, supabase.rpc("get_doctor_ratings")]);
+  const ratingById = new Map(((ratings ?? []) as RatingRow[]).map((r) => [r.doctor_id, r]));
 
   const { data: authData } = await createAdminClient().auth.admin.listUsers({ perPage: 1000 });
   const authById = new Map((authData?.users ?? []).map((u) => [u.id, u]));
@@ -38,6 +40,7 @@ async function loadUsers(supabase: Awaited<ReturnType<typeof requireRole>>["supa
       lastSignIn: auth?.last_sign_in_at ?? null,
       viaGoogle: auth?.app_metadata?.provider === "google",
       suspended: Boolean(auth?.banned_until && new Date(auth.banned_until).getTime() > now),
+      rating: ratingById.get(p.id) ?? null,
     };
   });
 }
@@ -92,6 +95,16 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
                 {u.lastSignIn ? ` · last login ${formatDate(u.lastSignIn)}` : " · never logged in"}
                 {u.viaGoogle && " · Google"}
               </span>
+              {u.role === "doctor" &&
+                (u.rating ? (
+                  <span>
+                    ★ {Number(u.rating.average_rating).toFixed(1)} from {u.rating.review_count}{" "}
+                    {Number(u.rating.review_count) === 1 ? "review" : "reviews"} ·{" "}
+                    <Link href={`/admin/users/${u.id}/reviews`}>View reviews</Link>
+                  </span>
+                ) : (
+                  <span>No reviews yet</span>
+                ))}
             </div>
             <div className="item-actions">
               <span className={`tag ${u.role === "doctor" ? "booked" : u.role === "admin" ? "paying" : "free"}`}>{u.role}</span>

@@ -2,7 +2,6 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import type { ActionResult } from "@/components/ActionButton";
 import { requireRole } from "@/lib/auth";
 import { loadConsultation } from "@/lib/consultations";
@@ -12,10 +11,19 @@ export type PrescriptionFormState = { error?: string };
 
 const text = (formData: FormData, name: string) => String(formData.get(name) ?? "").trim();
 
-// Doctor issues the prescription for a paid consultation.
+// Doctor issues the prescription for a paid consultation, usually during the
+// call. There's one per consultation, and issuing it completes the
+// consultation (see isConsultationOver in lib/consultations.ts).
 export async function issuePrescription(_prev: PrescriptionFormState, formData: FormData): Promise<PrescriptionFormState> {
   const { supabase } = await requireRole("doctor");
   const bookingId = text(formData, "bookingId");
+
+  // Writing it before the consultation even starts would end it too early.
+  const consultation = await loadConsultation(supabase, bookingId);
+  if (!consultation) return { error: "Consultation not found." };
+  if (consultation.callWindow === "early") {
+    return { error: "You can write the prescription once the consultation has started (the call opens 15 minutes before)." };
+  }
   const diagnosis = text(formData, "diagnosis");
   const notes = text(formData, "notes");
 
@@ -56,7 +64,11 @@ export async function issuePrescription(_prev: PrescriptionFormState, formData: 
   if (itemsError) console.error("Saving prescription items failed:", itemsError);
 
   await storePrescriptionPdf(supabase, bookingId);
-  redirect(`/doctor/consultations/${bookingId}/prescription`);
+  // Shows the issued prescription where the form was. On the call page the
+  // video isn't affected: it keeps running while the page updates around it.
+  revalidatePath(`/consultation/${bookingId}`);
+  revalidatePath(`/doctor/consultations/${bookingId}/prescription`);
+  return {};
 }
 
 // "Create PDF" button, in case creating the PDF failed the first time.

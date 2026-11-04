@@ -1,54 +1,57 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import BarList from "@/components/charts/BarList";
 import ColumnChart from "@/components/charts/ColumnChart";
+import { ANALYTICS_DAYS as DAYS, loadReport } from "@/lib/analytics";
 import { requireRole } from "@/lib/auth";
 import { formatKes } from "@/lib/time";
+import AiOverview from "./AiOverview";
 
 export const metadata: Metadata = { title: "Admin · AfyaLink" };
 
-type Analytics = {
-  patients: number;
-  doctors_verified: number;
-  doctors_pending: number;
-  consultations: number;
-  consultations_done: number;
-  revenue_kes: number;
-  symptom_checks: number;
-  red_flags: number;
-  prescriptions: number;
-  average_rating: number | null;
-  review_count: number;
-  bookings_per_day: { day: string; count: number }[];
-  by_specialty: { label: string; count: number }[];
-  urgency: Partial<Record<"routine" | "within_24_hours" | "emergency", number>>;
-};
-
-const DAYS = 14;
 const dayLabel = new Intl.DateTimeFormat("en-KE", { day: "numeric", month: "short", timeZone: "UTC" });
 
 export default async function AdminHome() {
   const { supabase } = await requireRole("admin");
 
   // Aggregated numbers only: admin_analytics() never returns a patient's record.
-  const { data, error } = await supabase.rpc("admin_analytics", { p_days: DAYS });
-  const a = data as Analytics | null;
+  const report = await loadReport(supabase);
+  const a = report?.analytics;
 
   return (
     <>
       <div className="eyebrow">Admin</div>
       <h1>Platform overview</h1>
       <p className="sub">
-        <Link href="/admin/doctors">Verify doctors</Link> · <Link href="/admin/users">Manage users</Link>
+        <Link href="/admin/doctors">Verify doctors</Link> · <Link href="/admin/users">Manage users</Link> ·{" "}
+        <Link href="/admin/reviews">Reviews</Link>
       </p>
 
-      {error || !a ? (
+      {!report || !a ? (
         <p className="notice bad">
           Analytics aren&apos;t available yet. Run <code>supabase/migrations/0004_admin_analytics.sql</code> in the
           Supabase SQL Editor, then reload.
         </p>
       ) : (
         <>
+          <section className="ai-overview" aria-labelledby="ai-overview-title">
+            <div className="ai-head">
+              <h2 id="ai-overview-title">AI overview</h2>
+              <span className="tag">Gemini</span>
+              <a href="/api/admin/report" className="btn btn-primary" download>
+                Download PDF report
+              </a>
+            </div>
+            <Suspense fallback={<p className="ai-pending">Gemini is reading the latest numbers…</p>}>
+              <AiOverview report={report} />
+            </Suspense>
+            <small className="ai-note">
+              Written by AI from the aggregated numbers on this page, never from patient records. It can make mistakes, so
+              check the figures before acting.
+            </small>
+          </section>
+
           <div className="hero-stat">
             <span className="label">Consultation revenue (M-Pesa sandbox)</span>
             <b>{formatKes(a.revenue_kes)}</b>
@@ -75,11 +78,11 @@ export default async function AdminHome() {
               <b>{a.symptom_checks.toLocaleString("en-KE")}</b>
               <span>{a.red_flags} sent to emergency care</span>
             </div>
-            <div className="panel">
+            <Link href="/admin/reviews" className="panel panel-link">
               <small className="label">Average rating</small>
               <b>{a.average_rating ? `★ ${Number(a.average_rating).toFixed(1)}` : "—"}</b>
-              <span>{a.review_count} reviews</span>
-            </div>
+              <span>{a.review_count} reviews · see all →</span>
+            </Link>
           </div>
 
           <div className="chart-grid">

@@ -11,7 +11,16 @@ type Prescription = {
 
 // Shows an issued prescription, with a download link for the PDF. Row-level
 // security means only the booking's patient and doctor can load it.
-export default async function PrescriptionView({ supabase, prescriptionId }: { supabase: SupabaseClient; prescriptionId: string }) {
+// newTab: open the PDF in a new tab, e.g. during a call, so the call keeps going.
+export default async function PrescriptionView({
+  supabase,
+  prescriptionId,
+  newTab = false,
+}: {
+  supabase: SupabaseClient;
+  prescriptionId: string;
+  newTab?: boolean;
+}) {
   const { data: p } = await supabase
     .from("prescriptions")
     .select("diagnosis, notes, pdf_path, created_at, prescription_items(id, medicine_name, dosage, frequency, duration, instructions)")
@@ -35,7 +44,11 @@ export default async function PrescriptionView({ supabase, prescriptionId }: { s
       {p.pdf_path && (
         // Goes through our route, which checks access, notes the patient's
         // download and then hands over a short-lived link to the private file.
-        <a href={`/api/prescriptions/${prescriptionId}/pdf`} className="btn btn-primary">
+        <a
+          href={`/api/prescriptions/${prescriptionId}/pdf`}
+          className="btn btn-primary"
+          {...(newTab ? { target: "_blank", rel: "noopener" } : {})}
+        >
           Download PDF
         </a>
       )}

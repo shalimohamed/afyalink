@@ -19,12 +19,15 @@ Only type **made-up symptoms**. The free Gemini tier may use them to improve Goo
 | Who | Email | Notes |
 |---|---|---|
 | Dr. Amina Otieno | `dr.amina@afyalink.test` | **General practitioner, KES 100**, verified, slots for 5 days. Use her for payment tests. |
-| 5 more verified doctors | `dr.kiprop@`, `dr.wanjiru@`, `dr.mwangi@`, `dr.hassan@`, `dr.ochieng@` (all `@afyalink.test`) | dermatology, psychology (per hour), paediatrics, gynaecology, ENT |
-| Dr. Lucy Njeri | `dr.njeri@afyalink.test` | psychiatry, **pending**: must stay hidden from patients until the admin approves |
+| 12 more verified doctors | `dr.kiprop@`, `dr.wanjiru@`, `dr.mwangi@`, `dr.hassan@`, `dr.ochieng@`, `dr.kamau@`, `dr.abdi@`, `dr.chebet@`, `dr.kiptoo@`, `dr.achieng@`, `dr.shah@`, `dr.wambui@` (all `@afyalink.test`) | every specialty has at least one |
+| Dr. Lucy Njeri | `dr.njeri@afyalink.test` | psychiatry, verified by an admin during testing |
+| Dr. Samuel Mutua, Dr. Collins Wekesa | `dr.mutua@`, `dr.wekesa@` (both `@afyalink.test`) | dermatology and ENT, **pending**: must stay hidden from patients until the admin approves |
 | Admin | `admin@afyalink.test` | |
-| Patient | register yourself, or use **Continue with Google** | use your real Safaricom number when paying |
+| 25 patients | `<first>.<last>@afyalink.test`, e.g. `wanjiku.mwangi@afyalink.test` | made up, with a date of birth and sex but no bookings yet. Enter the sandbox number when paying. |
 
-With the seed data you can skip creating accounts in steps 2–3 and use Dr. Njeri for the admin review tests. Still try registering one doctor by hand once, to test the form and certificate upload.
+With the seed data you can skip creating accounts in steps 2–3 and use Dr. Mutua or Dr. Wekesa for the admin review tests. Still try registering one doctor by hand once, to test the form and certificate upload.
+
+**Made-up activity:** `npm run seed:activity` (after `npm run seed`) fills the last 30 days with symptom checks, bookings, payments, prescriptions, reviews and chats for the 25 test patients, so the admin dashboard has something to show. Each run **deletes and recreates** that activity, including anything you did yourself while logged in as a test patient, and gives the **same numbers every time** (only the dates move along with today). Your own account is never touched.
 
 ---
 
@@ -93,11 +96,27 @@ With the seed data you can skip creating accounts in steps 2–3 and use Dr. Nje
 - [ ] Doctor A → **Consultations** → **Join call**. Both windows show the camera and mic check, then **Join consultation** → you see and hear each other (LiveKit).
 - [ ] Open the consultation link while logged in as a different patient → "not found".
 
-## 10. Prescription
+## 9b. Patient file (run `0009_patient_file.sql` first)
 
-- [ ] Doctor A → Consultations → **Write prescription** → submit with no medicine → error. Add 2 medicines (remove an empty row with ✕) → **Issue prescription**.
-- [ ] The prescription shows with **Download PDF** → the PDF has the doctor, registration no., patient, diagnosis, medicines table and notes.
-- [ ] Patient → the booking → **Your prescription** shows with **Download PDF**.
+- [ ] Patient → **History** → **My details** → choose a **Blood group** → **Save details** → "Saved".
+- [ ] Patient → **Check symptoms** → open a doctor from the results → above the times it says "Once you've paid, Dr. … will see the symptoms you checked…". Book and pay.
+- [ ] Doctor → **Consultations** → the booking shows "Symptoms: “…”" and a **Patient file** button (before the call opens) → the page shows age, sex, blood group, the symptoms, urgency and the AI suggestion. Only this one symptom check is there, not the patient's older ones.
+- [ ] A patient who didn't check their symptoms first → the file says "The patient didn't check their symptoms before booking."
+
+## 9c. Install on a phone (open the ngrok https:// address on the phone)
+
+- [ ] Android (Chrome): log in → the dashboard shows "Install AfyaLink on this device…" → **Install** → AfyaLink appears on the home screen with the green plus icon and opens without the address bar.
+- [ ] iPhone (Safari): log in → the bar says "tap Share, then Add to Home Screen" → do that → the AfyaLink icon opens it full screen.
+- [ ] **Not now** hides the bar on that phone, also after a reload.
+
+## 10. Prescription (during the call; run `0008_prescription_completes_consultation.sql` first)
+
+- [ ] While both of you are in the call, the doctor's call page has the **Prescription** form next to the video. Submit with no medicine → error. Add 2 medicines (remove an empty row with ✕) → **Issue prescription**.
+- [ ] The call keeps going on both sides. The doctor's panel says "Issued. This consultation is complete." and shows the prescription with **Download PDF** (opens in a new tab, so the call isn't left) → the PDF has the doctor, registration no., patient, diagnosis, medicines table and notes.
+- [ ] The patient taps **Leave**, then **Rejoin** → they get back in, because the doctor is still in the call.
+- [ ] Both tap **Leave**, then the patient taps **Rejoin** → "The consultation is complete and the call has ended."
+- [ ] Patient → the booking → "Your consultation is complete.", **Your prescription** with **Download PDF**, and **Rate your consultation** straight away (even if the slot time isn't over). No **Join video call** button.
+- [ ] Doctor → **Consultations** → the consultation is under **Past** with **Prescription ✓**. Before a consultation starts there's no **Write prescription** button.
 
 ## 11. Follow-up chat
 
@@ -124,6 +143,11 @@ With the seed data you can skip creating accounts in steps 2–3 and use Dr. Nje
 - [ ] Admin → **Platform overview** shows revenue, stat tiles and three charts. Hovering a bar shows its value; **Show as table** lists the numbers.
 - [ ] **Manage users** → filter by Patients/Doctors, search by name.
 - [ ] **Suspend** a test patient → logging in as them says "This account has been suspended". **Reactivate** → login works again.
+- [ ] **Platform overview** → the **AI overview** box first says "Gemini is reading the latest numbers…", then shows a headline and three lists that quote the numbers on the page. Reloading shows the same text straight away.
+- [ ] **Download PDF report** → a 2-page PDF with the same AI overview, the key figures and the charts. Logged in as a doctor, `/api/admin/report` says "Only admins can download reports."
+- [ ] Tap the **Average rating** card (or **Reviews** in the menu) → every review, with rating bars and filter chips. **1–2 ★** shows only low ratings, each tagged "low rating".
+- [ ] **Doctors** filter → a doctor with reviews shows their rating and **View reviews** → each review shows the stars, comment, date and patient, and the patient's name opens them in the user list.
+- [ ] (Run `0007_suspended_doctors.sql` first.) **Suspend** a verified doctor → as a patient, they're gone from search and the symptom-check results, and their page shows "not found". A "Book" button left open in another tab says "This doctor is not taking bookings." **Reactivate** → they're back.
 
 ## 15. Role checks
 
