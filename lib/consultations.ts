@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { loadSuspendedDoctorIds } from "@/lib/doctors";
 import type { Urgency } from "@/lib/symptoms/types";
 
 const OPENS_BEFORE_MS = 15 * 60 * 1000; // same as lib/livekit.ts
@@ -20,7 +21,7 @@ type Row = {
     date_of_birth: string | null;
     sex: string | null;
     blood_group?: string | null; // added by migration 0009
-    profile: { full_name: string; phone: string | null };
+    profile: { full_name: string };
   } | null;
   prescriptions: { id: string; pdf_path: string | null; created_at: string } | { id: string; pdf_path: string | null; created_at: string }[] | null;
 };
@@ -45,6 +46,8 @@ export type CallWindow = "early" | "open" | "ended";
 export type Consultation = Omit<Row, "prescriptions"> & {
   callWindow: CallWindow;
   done: boolean;
+  // An admin suspended the doctor, so the consultation won't go ahead.
+  doctorSuspended: boolean;
   prescription: { id: string; pdf_path: string | null; created_at: string } | null;
   symptomCheck: SharedCheck | null;
 };
@@ -62,7 +65,7 @@ const SELECT =
   "*, " +
   "slot:availability_slots(starts_at, ends_at, doctor_id, " +
   "doctor:doctors(registration_number, specialties(label), profile:profiles!doctors_id_fkey(full_name))), " +
-  "patient:patients(*, profile:profiles(full_name, phone)), " +
+  "patient:patients(*, profile:profiles(full_name)), " +
   "prescriptions(id, pdf_path, created_at)";
 
 const CHECK_SELECT = "id, symptoms, urgency, red_flag_triggered, created_at, specialties(label), symptom_check_conditions(rank, condition_name)";
@@ -76,7 +79,7 @@ async function loadSharedChecks(supabase: SupabaseClient, rows: Row[]) {
   return new Map(((data ?? []) as unknown as SharedCheck[]).map((c) => [c.id, c]));
 }
 
-function shape(row: Row, now: number, checks: Map<string, SharedCheck>): Consultation {
+function shape(row: Row, now: number, checks: Map<string, SharedCheck>, suspended: Set<string>): Consultation {
   const start = new Date(row.slot.starts_at).getTime();
   const end = new Date(row.slot.ends_at).getTime();
   const callWindow: CallWindow = now < start - OPENS_BEFORE_MS ? "early" : now > end + CLOSES_AFTER_MS ? "ended" : "open";
@@ -87,6 +90,7 @@ function shape(row: Row, now: number, checks: Map<string, SharedCheck>): Consult
     callWindow,
     prescription,
     done: isConsultationOver(row.slot.ends_at, Boolean(prescription), now),
+    doctorSuspended: suspended.has(row.slot.doctor_id),
     symptomCheck: (row.symptom_check_id && checks.get(row.symptom_check_id)) || null,
   };
 }
@@ -95,10 +99,13 @@ function shape(row: Row, now: number, checks: Map<string, SharedCheck>): Consult
 // and its doctor (and admins).
 export async function loadConsultation(supabase: SupabaseClient, bookingId: string): Promise<Consultation | null> {
   const now = Date.now();
-  const { data } = await supabase.from("bookings").select(SELECT).eq("id", bookingId).eq("status", "confirmed").maybeSingle();
+  const [{ data }, suspended] = await Promise.all([
+    supabase.from("bookings").select(SELECT).eq("id", bookingId).eq("status", "confirmed").maybeSingle(),
+    loadSuspendedDoctorIds(supabase),
+  ]);
   if (!data) return null;
   const row = data as unknown as Row;
-  return shape(row, now, await loadSharedChecks(supabase, [row]));
+  return shape(row, now, await loadSharedChecks(supabase, [row]), suspended);
 }
 
 // All paid consultations of the logged-in doctor, soonest first.
@@ -107,5 +114,6 @@ export async function loadDoctorConsultations(supabase: SupabaseClient): Promise
   const { data } = await supabase.from("bookings").select(SELECT).eq("status", "confirmed");
   const rows = (data ?? []) as unknown as Row[];
   const checks = await loadSharedChecks(supabase, rows);
-  return rows.map((row) => shape(row, now, checks)).sort((a, b) => a.slot.starts_at.localeCompare(b.slot.starts_at));
+  // A suspended doctor can't log in, so the logged-in doctor isn't suspended.
+  return rows.map((row) => shape(row, now, checks, new Set())).sort((a, b) => a.slot.starts_at.localeCompare(b.slot.starts_at));
 }

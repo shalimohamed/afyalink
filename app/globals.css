@@ -183,6 +183,10 @@ footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;paddin
 .notice{margin:0;border-radius:12px;padding:12px 14px;font-size:14px}
 .notice.ok{background:var(--soft)}
 .notice.bad{background:var(--alert-soft);color:var(--alert)}
+/* "Student demo" line at the top of the public pages (components/DemoNotice.tsx) */
+.demo-bar{margin:12px 0 0;padding:8px 14px;border-radius:12px;background:var(--soft);font-size:13px;line-height:1.45;text-align:center}
+/* "Forgot your password?" under the password box */
+.field-link{justify-self:end;font-size:14px;font-weight:600;color:var(--accent)}
 .btn-google{width:100%;justify-content:center;gap:10px;background:var(--surface);color:var(--ink);border-color:var(--line);font-family:inherit;cursor:pointer}
 .btn-google:hover{border-color:var(--muted)}
 .google-gap{margin-top:16px}

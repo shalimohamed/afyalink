@@ -1,4 +1,5 @@
 import Image from "next/image";
+import DemoNotice from "@/components/DemoNotice";
 import Showcase from "@/components/Showcase";
 // Free Pexels/Unsplash photo (credited in the footer). Importing it lets Next.js
 // read its size and generate a blurred placeholder while it loads.
@@ -36,6 +37,7 @@ const trust = [
 export default function Home() {
   return (
     <div className="wrap">
+      <DemoNotice />
       <nav>
         <a className="logo" href="#top">
           <span className="mark" aria-hidden="true" />

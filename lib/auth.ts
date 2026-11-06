@@ -9,7 +9,8 @@ export const HOME_FOR_ROLE: Record<Role, string> = {
   admin: "/admin",
 };
 
-export type Profile = { id: string; role: Role; full_name: string; phone: string | null };
+// (The phone number isn't here: only lib/phone.ts loadPhones() can read it.)
+export type Profile = { id: string; role: Role; full_name: string };
 
 // Loads the logged-in user's profile, or sends logged-out users to /login.
 export async function requireUser() {
@@ -21,7 +22,7 @@ export async function requireUser() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, role, full_name, phone")
+    .select("id, role, full_name")
     .eq("id", user.id)
     .single<Profile>();
   if (!profile) redirect("/login");

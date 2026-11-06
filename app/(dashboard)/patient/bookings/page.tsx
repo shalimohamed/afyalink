@@ -12,6 +12,7 @@ const STATE_LABEL: Record<BookingState, string> = {
   past: "Completed",
   expired: "Not paid",
   cancelled: "Cancelled",
+  unavailable: "Doctor unavailable",
 };
 const STATE_TAG: Record<BookingState, string> = {
   held: "paying",
@@ -19,6 +20,7 @@ const STATE_TAG: Record<BookingState, string> = {
   past: "free",
   expired: "rejected",
   cancelled: "rejected",
+  unavailable: "rejected",
 };
 
 export default async function BookingsPage() {

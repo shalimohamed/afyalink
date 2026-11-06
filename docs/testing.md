@@ -13,6 +13,8 @@ Only type **made-up symptoms**. The free Gemini tier may use them to improve Goo
 - [ ] Terminal 1: `npm run dev` → "Ready".
 - [ ] Terminal 2 (only needed for step 7): `ngrok http 3000 --url https://partition-grout-surreal.ngrok-free.dev`
 - [ ] Use **two browser windows**: a normal one for the patient, and a private/incognito one for the doctor and admin. Then you don't have to keep logging in and out.
+- [ ] `npm test` → every red-flag test passes.
+- [ ] Migration `0010_privacy_fixes.sql` has been run (after updating the code).
 
 **Shortcut:** `npm run seed` creates ready-made test accounts (password for all: `AfyaLink-Test-2026`):
 
@@ -37,6 +39,9 @@ With the seed data you can skip creating accounts in steps 2–3 and use Dr. Mut
 - [ ] **Log out** → you land on /login. Log in again → back on /patient.
 - [ ] Log in with a wrong password → "Wrong email or password."
 - [ ] While logged out, open `/patient` → you're sent to /login.
+- [ ] The landing, login and register pages show the "Student demo" line at the top.
+- [ ] **Forgot your password?** → enter **your own** email (Supabase's built-in email only reaches members of your Supabase team, about 2 emails an hour) → "If … has an AfyaLink account, we've emailed it a link". Open the link **in the same browser** → "Choose a new password" → save → you land on your dashboard and can log in with the new password. Opening the same link again → "That link has expired, was already used…".
+- [ ] Open a made-up address like `/nothing-here` → AfyaLink's "Page not found" with a button back.
 
 ## 2. Doctor registration
 
@@ -74,6 +79,7 @@ With the seed data you can skip creating accounts in steps 2–3 and use Dr. Mut
 - [ ] Patient → **Find a doctor** → only **Doctor A** is listed (**Doctor B is not**, because unverified). The specialty chips filter the list.
 - [ ] Open Doctor A → free slots with prices → **Book** one → booking page with a **countdown from 5:00**.
 - [ ] Doctor A's Availability page → that slot shows **"Patient is paying"** and has no Delete button.
+- [ ] While that hold is running, **Book** a different slot → the first booking now says "Your 5-minute hold ran out" and its slot is bookable again (a patient holds one slot at a time).
 
 ## 7. M-Pesa payment (ngrok must be running)
 
@@ -148,6 +154,8 @@ With the seed data you can skip creating accounts in steps 2–3 and use Dr. Mut
 - [ ] Tap the **Average rating** card (or **Reviews** in the menu) → every review, with rating bars and filter chips. **1–2 ★** shows only low ratings, each tagged "low rating".
 - [ ] **Doctors** filter → a doctor with reviews shows their rating and **View reviews** → each review shows the stars, comment, date and patient, and the patient's name opens them in the user list.
 - [ ] (Run `0007_suspended_doctors.sql` first.) **Suspend** a verified doctor → as a patient, they're gone from search and the symptom-check results, and their page shows "not found". A "Book" button left open in another tab says "This doctor is not taking bookings." **Reactivate** → they're back.
+- [ ] Suspend a doctor who has a **paid consultation coming up** → the patient's **My consultations** shows "Doctor unavailable"; the booking says the consultation won't take place and AfyaLink will refund the amount, with no Join or chat button, and the dashboard no longer counts it as the next consultation. Admin → **Manage users** shows "Refund due: KES … to <patient>" under that doctor. Reactivate → back to normal.
+- [ ] Phone numbers: **Manage users** and **Verify doctors** still show phone numbers to the admin, and a patient's pay form is still filled in with their own number.
 
 ## 15. Role checks
 

@@ -27,7 +27,9 @@ const DOCTORS = [
   { email: "dr.ochieng@afyalink.test", name: "Peter Ochieng", specialty: "ent", reg: "TEST-EN-006", feeType: "per_session", fee: 1300, minutes: 30, verified: true,
     bio: "Ear, nose and throat specialist: sinus problems, sore throats, ear infections and hearing concerns." },
   { email: "dr.njeri@afyalink.test", name: "Lucy Njeri", specialty: "psychiatry", reg: "TEST-PY-007", feeType: "per_hour", fee: 3000, minutes: 60, verified: false,
-    bio: "Psychiatrist (waiting for verification, so patients can't see her yet)." },
+    // Created as pending (an admin approves her during testing); the bio is
+    // rewritten on every run, so it mustn't say she's waiting.
+    bio: "Psychiatrist for depression, anxiety, bipolar disorder and reviews of psychiatric medication." },
   { email: "dr.mutua@afyalink.test", name: "Samuel Mutua", specialty: "dermatology", reg: "TEST-DM-008", feeType: "per_session", fee: 1400, minutes: 30, verified: false,
     bio: "Dermatologist with 5 years' experience in skin allergies, acne and scalp conditions." },
   { email: "dr.kamau@afyalink.test", name: "Joseph Kamau", specialty: "general_practice", reg: "TEST-GP-009", feeType: "per_session", fee: 800, minutes: 30, verified: true,

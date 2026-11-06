@@ -7,6 +7,7 @@ import { requireRole } from "@/lib/auth";
 import { loadPatientBookings } from "@/lib/bookings";
 import { loadConsultation } from "@/lib/consultations";
 import { canJoinCall } from "@/lib/livekit";
+import { loadPhones, localPhone } from "@/lib/phone";
 import { formatKes, formatSlot, formatTime } from "@/lib/time";
 import { requestChat } from "@/app/(dashboard)/chat/actions";
 import { checkPayment } from "../actions";
@@ -34,8 +35,8 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
   const doctorName = booking.slot.doctor?.profile.full_name;
   const payment = booking.latestPayment;
   const waitingForPin = booking.state === "held" && payment?.status === "pending";
-  // 2547XXXXXXXX → 07XXXXXXXX for the form
-  const defaultPhone = profile.phone ? "0" + profile.phone.slice(3) : "";
+  // The pay form starts with the patient's own number (07XXXXXXXX).
+  const defaultPhone = booking.state === "held" ? localPhone((await loadPhones(supabase, [profile.id])).get(profile.id)) : "";
 
   return (
     <>
@@ -94,7 +95,16 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
         </p>
       )}
 
-      {consultation && (
+      {booking.state === "unavailable" && (
+        <p className="notice bad">
+          <strong>Dr. {doctorName} is no longer available on AfyaLink</strong>, so this consultation won&apos;t take place.
+          AfyaLink will refund your {formatKes(booking.amount_kes)}
+          {payment?.mpesa_receipt && <> (M-Pesa receipt <code>{payment.mpesa_receipt}</code>)</>}. You can{" "}
+          <Link href="/patient/doctors">book another doctor</Link>.
+        </p>
+      )}
+
+      {consultation && booking.state !== "unavailable" && (
         <>
           <div className="notice ok">
             <strong>
@@ -141,14 +151,19 @@ export default async function BookingPage({ params }: { params: Promise<{ id: st
             </>
           )}
 
-          <h2 className="section-title">Questions afterwards?</h2>
-          <p className="empty">Send the doctor a free follow-up chat request. If they accept, you can chat for 3 hours.</p>
-          <ActionButton
-            action={requestChat}
-            fields={{ doctorId: booking.slot.doctor_id }}
-            label="Request a follow-up chat"
-            pendingLabel="Sending…"
-          />
+          {/* A suspended doctor can't take chats (the database refuses the request too). */}
+          {!consultation.doctorSuspended && (
+            <>
+              <h2 className="section-title">Questions afterwards?</h2>
+              <p className="empty">Send the doctor a free follow-up chat request. If they accept, you can chat for 3 hours.</p>
+              <ActionButton
+                action={requestChat}
+                fields={{ doctorId: booking.slot.doctor_id }}
+                label="Request a follow-up chat"
+                pendingLabel="Sending…"
+              />
+            </>
+          )}
         </>
       )}
 

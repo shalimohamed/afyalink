@@ -22,6 +22,11 @@ export default async function CheckPage({ searchParams }: { searchParams: Promis
         Only a doctor can diagnose you.
       </p>
 
+      <p className="notice ok">
+        <strong>Please use made-up symptoms.</strong> AfyaLink is a student demo, and the AI behind it is Google
+        Gemini&apos;s free tier: Google may use what you type to improve its products.
+      </p>
+
       <p className="notice bad">
         <strong>Emergency?</strong> If you have chest pain, trouble breathing, heavy bleeding, sudden weakness or
         confusion, have fainted, or have thoughts of harming yourself, don&apos;t use this. Go to the nearest hospital

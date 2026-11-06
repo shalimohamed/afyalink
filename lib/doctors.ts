@@ -22,6 +22,13 @@ type DoctorRow = {
   specialties: { label: string };
 };
 
+// IDs of doctors an admin has suspended (migration 0007). Empty if the
+// function is missing, so pages still work.
+export async function loadSuspendedDoctorIds(supabase: SupabaseClient) {
+  const { data } = await supabase.rpc("get_suspended_doctors");
+  return new Set(((data ?? []) as { doctor_id: string }[]).map((s) => s.doctor_id));
+}
+
 // Verified doctors (optionally one specialty, or one doctor by ID) with their
 // average rating. Unverified doctors are never returned: the query asks for
 // verified ones, and row-level security hides them from patients anyway.
@@ -38,15 +45,14 @@ export async function getVerifiedDoctors(
   if (filter.specialtyId) query = query.eq("specialty_id", filter.specialtyId);
   if (filter.doctorId) query = query.eq("id", filter.doctorId);
 
-  const [{ data }, { data: ratings }, { data: suspended }] = await Promise.all([
+  const [{ data }, { data: ratings }, suspendedIds] = await Promise.all([
     query,
     supabase.rpc("get_doctor_ratings"),
-    supabase.rpc("get_suspended_doctors"),
+    loadSuspendedDoctorIds(supabase),
   ]);
   const ratingByDoctor = new Map(
     ((ratings ?? []) as { doctor_id: string; average_rating: number; review_count: number }[]).map((r) => [r.doctor_id, r]),
   );
-  const suspendedIds = new Set(((suspended ?? []) as { doctor_id: string }[]).map((s) => s.doctor_id));
 
   return ((data ?? []) as unknown as DoctorRow[])
     .filter((d) => !suspendedIds.has(d.id))

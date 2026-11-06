@@ -17,9 +17,9 @@ export const roomNameFor = (bookingId: string) => `consult-${bookingId}`;
 // until the doctor issues the prescription, which ends the CONSULTATION. The
 // call itself isn't cut off: whoever is in it stays, and someone who drops out
 // can rejoin while the other person is still there. Once both have left, the
-// call is over too.
-export async function canJoinCall(consultation: Pick<Consultation, "id" | "callWindow" | "prescription">) {
-  if (consultation.callWindow !== "open") return false;
+// call is over too. Never if an admin has suspended the doctor.
+export async function canJoinCall(consultation: Pick<Consultation, "id" | "callWindow" | "prescription" | "doctorSuspended">) {
+  if (consultation.doctorSuspended || consultation.callWindow !== "open") return false;
   if (!consultation.prescription) return true;
   return someoneInCall(consultation.id);
 }

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { loadPatientBookings } from "@/lib/bookings";
+import { loadPhones, localPhone } from "@/lib/phone";
 import { URGENCY_LABELS, type Urgency } from "@/lib/symptoms/types";
 import { formatDate, formatSlot, nairobiToday } from "@/lib/time";
 import DetailsForm from "./DetailsForm";
@@ -58,8 +59,9 @@ async function loadHistory(supabase: SupabaseClient) {
 
 export default async function HistoryPage() {
   const { supabase, profile } = await requireRole("patient");
-  const [entries, { data: details }] = await Promise.all([
+  const [entries, phones, { data: details }] = await Promise.all([
     loadHistory(supabase),
+    loadPhones(supabase, [profile.id]),
     // "*" also includes blood_group once migration 0009 has added it.
     supabase
       .from("patients")
@@ -82,7 +84,7 @@ export default async function HistoryPage() {
         dateOfBirth={details?.date_of_birth ?? null}
         sex={details?.sex ?? null}
         bloodGroup={details?.blood_group ?? null}
-        phone={profile.phone ? "0" + profile.phone.slice(3) : ""}
+        phone={localPhone(phones.get(profile.id))}
         today={nairobiToday()}
       />
 

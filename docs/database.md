@@ -5,6 +5,7 @@ The SQL lives in `supabase/migrations/`:
 
 - `0001_tables.sql`: the 14 tables, keys, constraints and indexes
 - `0002_security.sql`: row-level security, the signup trigger, database functions, storage and realtime
+- `0010_privacy_fixes.sql` (before hosting): **column permissions** on `profiles`, so `phone` can't be selected directly any more (before, any logged-in user could read every verified doctor's number through the API). It's only readable through `get_phones()`: your own number, or anyone's for an admin. `has_consulted()` now only answers about the logged-in user (it could be asked "has patient X seen doctor Y?" about anyone). Chat requests to a suspended doctor are refused. `hold_slot()` releases the patient's earlier hold, so a patient holds at most one slot at a time. Run it **after** updating the app code.
 - `0009_patient_file.sql`: `patients.blood_group` (a fact about the patient), and `bookings.symptom_check_id`: the symptom check shared with that booking's doctor, set only by `hold_slot()` (the patient's latest check from the last 24 hours, unless they've paid for a booking since). It's a fact about the booking ("which check its doctor may read"), so it belongs on `bookings`, not on `symptom_checks`. A new policy lets only the doctor of a **paid** booking read that one check (and its conditions); the patient's other checks stay private, and admins still see none.
 - `0008_prescription_completes_consultation.sql`: a consultation is over once the prescription is issued, or (without one) once its slot has ended. `booking_has_ended()` (used by the reviews policy) and the "consultations completed" count in `admin_analytics()` now use that rule. "Over" isn't stored; it's worked out from the slot's end time and whether a prescription exists.
 - `0007_suspended_doctors.sql`: stops suspended doctors appearing in search or being booked (`is_suspended()`, `get_suspended_doctors()`, and new versions of `get_available_slots()` and `hold_slot()`). Suspension isn't stored in our tables; it's read from `auth.users.banned_until`, so there's only one copy.
@@ -184,14 +185,15 @@ In the Supabase dashboard, **Database → Schema Visualizer** draws the same dia
 - **Foreign keys** on every relationship (e.g. a booking can't point to a slot that doesn't exist).
 - **CHECK constraints:** M-Pesa phone format `2547XXXXXXXX` / `2541XXXXXXXX`, fee between KES 100 and 50,000, rating 1–5, a slot must end after it starts and be 15 minutes to 3 hours long.
 - **No overlapping slots** for the same doctor (an exclusion constraint).
-- **No double booking:** at most one active booking (`pending_payment` or `confirmed`) per slot (a partial unique index). `hold_slot()` also locks the slot row, so two patients clicking at the same moment can't both hold it.
+- **No double booking:** at most one active booking (`pending_payment` or `confirmed`) per slot (a partial unique index). `hold_slot()` also locks the slot row, so two patients clicking at the same moment can't both hold it, and releases the patient's earlier hold, so one patient can't block many slots.
 - **One waiting chat request** per patient–doctor pair.
 
 ## Security (row-level security)
 RLS is enabled on **all 14 tables**. With RLS on, a row is hidden unless a policy allows it. In summary:
 - Patients see only their own bookings, payments, symptom checks, prescriptions and chats.
 - Doctors see only bookings for their own slots, and the profiles of their own patients.
-- Unverified doctors and their slots are hidden from patients. Suspended doctors are left out of search and can't be booked (`hold_slot()` refuses them).
+- Phone numbers: RLS chooses which **rows** you see; column permissions choose which **columns**. Nobody can select `profiles.phone` directly; `get_phones()` returns only your own number (or anyone's, for an admin).
+- Unverified doctors and their slots are hidden from patients. Suspended doctors are left out of search, can't be booked (`hold_slot()` refuses them) and can't receive chat requests. Their patients' unfinished paid consultations show as "doctor unavailable" (patient) and "refund due" (admin), worked out when the page loads, not stored.
 - Bookings and payments can't be written from the browser at all. Bookings go through `hold_slot()`, which works out the price itself, and payments are written by the server when the M-Pesa callback arrives.
 - Symptom checks and prescriptions aren't visible even to admins (data minimisation under the Kenya Data Protection Act, 2019).
 - Nobody can make themselves an admin: signup only creates patients or doctors.

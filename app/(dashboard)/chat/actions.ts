@@ -10,14 +10,17 @@ export async function requestChat(_prev: ActionResult, formData: FormData): Prom
   const { supabase, profile } = await requireRole("patient");
   const doctorId = String(formData.get("doctorId") ?? "");
 
-  // RLS only allows this if the patient has a paid booking with this doctor.
+  // RLS only allows this if the patient has a paid booking with this doctor
+  // and the doctor isn't suspended.
   const { data, error } = await supabase
     .from("chat_requests")
     .insert({ patient_id: profile.id, doctor_id: doctorId })
     .select("id")
     .single<{ id: string }>();
   if (error?.code === "23505") return { error: "You already have a request waiting for this doctor." };
-  if (error?.code === "42501") return { error: "You can only chat with doctors you've had a paid consultation with." };
+  if (error?.code === "42501") {
+    return { error: "You can only chat with doctors you've had a paid consultation with and who are still on AfyaLink." };
+  }
   if (error || !data) {
     console.error("Chat request failed:", error);
     return { error: "We couldn't send the request. Please try again." };

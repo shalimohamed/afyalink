@@ -7,6 +7,7 @@ import JourneyTracker from "@/components/dashboard/JourneyTracker";
 import WellnessCheckin from "@/components/dashboard/WellnessCheckin";
 import { requireRole } from "@/lib/auth";
 import { loadPatientDashboard } from "@/lib/patientDashboard";
+import { loadPhones } from "@/lib/phone";
 import { formatSlot } from "@/lib/time";
 
 export const metadata: Metadata = { title: "My AfyaLink" };
@@ -14,7 +15,8 @@ export const metadata: Metadata = { title: "My AfyaLink" };
 export default async function PatientHome() {
   const { supabase, profile } = await requireRole("patient");
   const firstName = profile.full_name.split(" ")[0];
-  const { messages, journey, next } = await loadPatientDashboard(supabase, { id: profile.id, firstName, phone: profile.phone });
+  const phone = (await loadPhones(supabase, [profile.id])).get(profile.id) ?? null;
+  const { messages, journey, next } = await loadPatientDashboard(supabase, { id: profile.id, firstName, phone });
 
   return (
     <>

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isConsultationOver } from "@/lib/consultations";
+import { loadSuspendedDoctorIds } from "@/lib/doctors";
 
 const HOLD_MS = 5 * 60 * 1000;
 
@@ -19,10 +20,12 @@ type BookingRow = {
   prescriptions: { id: string } | { id: string }[] | null;
 };
 
-// What the patient sees: "held" (paying now), "expired", "upcoming", "past"
-// or "cancelled". Worked out from the stored status, the clock and whether
-// the doctor has issued the prescription (which completes the consultation).
-export type BookingState = "held" | "expired" | "upcoming" | "past" | "cancelled";
+// What the patient sees: "held" (paying now), "expired", "upcoming", "past",
+// "cancelled" or "unavailable" (paid, but an admin suspended the doctor before
+// it took place). Worked out from the stored status, the clock, whether the
+// doctor has issued the prescription (which completes the consultation) and
+// whether the doctor is suspended.
+export type BookingState = "held" | "expired" | "upcoming" | "past" | "cancelled" | "unavailable";
 
 export type PatientBooking = BookingRow & {
   state: BookingState;
@@ -43,14 +46,16 @@ export async function loadPatientBookings(supabase: SupabaseClient, bookingId?: 
     )
     .order("created_at", { ascending: false });
   if (bookingId) query = query.eq("id", bookingId);
-  const { data } = await query;
+  const [{ data }, suspended] = await Promise.all([query, loadSuspendedDoctorIds(supabase)]);
 
   return ((data ?? []) as unknown as BookingRow[]).map((b) => {
     const holdExpiresAt = new Date(new Date(b.created_at).getTime() + HOLD_MS);
     let state: BookingState;
     const prescribed = Array.isArray(b.prescriptions) ? b.prescriptions.length > 0 : Boolean(b.prescriptions);
-    if (b.status === "confirmed") state = isConsultationOver(b.slot.ends_at, prescribed, now) ? "past" : "upcoming";
-    else if (b.status === "cancelled") state = "cancelled";
+    if (b.status === "confirmed") {
+      if (isConsultationOver(b.slot.ends_at, prescribed, now)) state = "past";
+      else state = suspended.has(b.slot.doctor_id) ? "unavailable" : "upcoming";
+    } else if (b.status === "cancelled") state = "cancelled";
     else if (b.status === "pending_payment" && holdExpiresAt.getTime() > now) state = "held";
     else state = "expired";
 

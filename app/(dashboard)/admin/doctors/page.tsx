@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import ActionButton from "@/components/ActionButton";
 import { requireRole } from "@/lib/auth";
+import { loadPhones } from "@/lib/phone";
 import { formatDate, formatKes } from "@/lib/time";
 import { reviewDoctor } from "./actions";
 
@@ -16,7 +17,7 @@ type DoctorRow = {
   verification_status: "pending" | "verified" | "rejected";
   rejection_reason: string | null;
   reviewed_at: string | null;
-  profile: { full_name: string; phone: string | null; created_at: string };
+  profile: { full_name: string; created_at: string };
   specialties: { label: string };
 };
 
@@ -29,10 +30,11 @@ export default async function VerifyDoctorsPage() {
     .from("doctors")
     .select(
       "id, registration_number, fee_type, fee_kes, licence_path, verification_status, rejection_reason, reviewed_at, " +
-        "profile:profiles!doctors_id_fkey(full_name, phone, created_at), specialties(label)",
+        "profile:profiles!doctors_id_fkey(full_name, created_at), specialties(label)",
     )
     .order("reviewed_at", { ascending: false, nullsFirst: true });
   const doctors = (data ?? []) as unknown as DoctorRow[];
+  const phones = await loadPhones(supabase, doctors.map((d) => d.id));
 
   // The bucket is private, so the admin gets temporary links (valid 10 minutes).
   const paths = doctors.flatMap((d) => (d.licence_path ? [d.licence_path] : []));
@@ -66,7 +68,7 @@ export default async function VerifyDoctorsPage() {
                 {d.specialties.label} · Reg. no. <code>{d.registration_number}</code>
               </span>
               <span>
-                {formatKes(d.fee_kes)} {d.fee_type === "per_hour" ? "per hour" : "per session"} · {d.profile.phone} ·
+                {formatKes(d.fee_kes)} {d.fee_type === "per_hour" ? "per hour" : "per session"} · {phones.get(d.id) ?? "no phone"} ·
                 registered {formatDate(d.profile.created_at)}
               </span>
               {d.licence_path && licenceUrl.get(d.licence_path) ? (

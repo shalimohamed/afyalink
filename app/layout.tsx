@@ -12,6 +12,9 @@ export const metadata: Metadata = {
   // iPhone: "Add to Home Screen" opens AfyaLink full screen, named "AfyaLink".
   // (The icons come from app/icon.svg, app/apple-icon.png and app/favicon.ico.)
   appleWebApp: { capable: true, title: "AfyaLink", statusBarStyle: "default" },
+  // A student demo shouldn't show up in Google search, where it could be
+  // mistaken for a real medical service.
+  robots: { index: false, follow: false },
 };
 
 // On phones, the browser's address bar takes the page's background colour

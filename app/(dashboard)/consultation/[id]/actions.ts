@@ -17,11 +17,13 @@ export async function getCallToken(bookingId: string): Promise<CallTokenResult> 
 
   if (!(await canJoinCall(consultation))) {
     return {
-      ended: consultation.prescription
-        ? "The consultation is complete and the call has ended."
-        : consultation.callWindow === "early"
-          ? "The call isn't open yet. It opens 15 minutes before the start time."
-          : "This consultation has ended.",
+      ended: consultation.doctorSuspended
+        ? "This doctor is no longer available on AfyaLink, so the consultation won't take place."
+        : consultation.prescription
+          ? "The consultation is complete and the call has ended."
+          : consultation.callWindow === "early"
+            ? "The call isn't open yet. It opens 15 minutes before the start time."
+            : "This consultation has ended.",
     };
   }
 

@@ -27,7 +27,8 @@ const RULES: { id: string; label: string; patterns: RegExp[] }[] = [
       /(can'?t|cannot|can not|hard to|difficult\w* (to )?|trouble|struggl\w* to|unable to)\s*breath/,
       /short(ness)?\s+of\s+breath/,
       /breathless|gasping|choking|suffocat/,
-      /(lips|face) (are |is |turning )?(blue|grey|gray)/,
+      // "lips are blue", "my face is turning grey", "his lips have gone blue"
+      /(lips|face) (are |is |has |have )?(turning |turned |going |gone )?(blue|grey|gray)/,
     ],
   },
   {

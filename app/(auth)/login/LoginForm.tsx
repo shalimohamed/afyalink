@@ -43,6 +43,9 @@ export default function LoginForm({ googleFailed = false }: { googleFailed?: boo
           <input name="password" type="password" autoComplete="current-password" aria-invalid={!!e.password} required />
           {e.password && <small className="err">{e.password}</small>}
         </label>
+        <Link href="/forgot-password" className="field-link">
+          Forgot your password?
+        </Link>
 
         <button className="btn btn-primary" disabled={pending}>
           {pending ? "Logging in…" : "Log in"}

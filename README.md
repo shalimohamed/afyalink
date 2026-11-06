@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AfyaLink
 
-## Getting Started
+Telemedicine web app for Kenya (USIU-Africa student project). A patient describes their symptoms, red-flag rules and an AI suggest what kind of doctor they need, they book a verified doctor, pay with M-Pesa, have a video consultation and get a digital prescription.
 
-First, run the development server:
+**This is a demo, not a real medical service.** Use made-up names and symptoms: the AI is Google Gemini's free tier, which may use prompts to improve Google's products. Payments use the M-Pesa **sandbox** (no real money).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Stack
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| Area | Choice |
+|---|---|
+| App | Next.js 16 (App Router) + TypeScript, Tailwind CSS v4 + the tokens in `app/globals.css` |
+| Database, login, files, chat | Supabase (Postgres with row-level security, Auth, Storage, Realtime) |
+| Video | LiveKit Cloud |
+| Payments | Safaricom Daraja STK Push (sandbox) |
+| AI | Google Gemini (`@google/genai`), server-side only |
+| PDFs | `@react-pdf/renderer` |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Next.js 16 differs from older versions (e.g. `proxy.ts` replaces middleware). Its docs are in `node_modules/next/dist/docs/`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Running it locally
 
-## Learn More
+You need **Node.js 22.18 or newer** (24 recommended) and access to the Supabase, LiveKit, Daraja and Gemini accounts (ask Shali).
 
-To learn more about Next.js, take a look at the following resources:
+1. `npm install`
+2. Create `.env.local` in the project folder (it's git-ignored; **never commit it**):
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=
+   SUPABASE_SERVICE_ROLE_KEY=
+   GEMINI_API_KEY=
+   MPESA_CONSUMER_KEY=
+   MPESA_CONSUMER_SECRET=
+   MPESA_SHORTCODE=174379
+   MPESA_PASSKEY=
+   MPESA_CALLBACK_URL=https://<public https address>/api/payments/callback
+   MPESA_CALLBACK_SECRET=
+   LIVEKIT_URL=
+   LIVEKIT_API_KEY=
+   LIVEKIT_API_SECRET=
+   ```
+   Only the two `NEXT_PUBLIC_` values may ever reach the browser. Everything else is secret.
+3. `npm run dev`, then open http://localhost:3000
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### A new Supabase project
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Run every file in `supabase/migrations/` in the Supabase SQL Editor, **in number order** (0001 to 0010). Then turn off Authentication → Email → "Confirm email", and create an admin as described at the end of `docs/database.md`.
 
-## Deploy on Vercel
+### Test data
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `npm run seed`: 16 doctors (2 waiting for verification), 25 patients and `admin@afyalink.test`, with free slots for the next 5 days. All use `@afyalink.test` emails and the password `AfyaLink-Test-2026`. Re-run it before a demo, because the slots run out.
+- `npm run seed:activity` (after `npm run seed`): 30 days of made-up symptom checks, bookings, payments, prescriptions, reviews and chats for the test patients. It deletes and recreates that activity each time, and gives the same numbers every run.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The local app and the hosted one share **one** Supabase project, so anything you do locally shows up on the live site too.
+
+## Checks
+
+- `npm test`: the emergency red-flag rules (`lib/symptoms/redFlags.ts`)
+- `npm run lint` and `npx tsc --noEmit`
+- `npm run build`: the production build Vercel runs
+- `docs/testing.md`: the step-by-step manual test, run before each presentation
+
+## Where things are
+
+- `app/`: pages. `(auth)` = login, register and password reset; `(dashboard)` = patient, doctor and admin areas, `/consultation` (video) and `/chat`; `api/` = M-Pesa callback, prescription download, admin PDF report.
+- `lib/`: shared logic (bookings, payments, M-Pesa, LiveKit, symptom checker, analytics).
+- `components/`: shared UI.
+- `supabase/migrations/`: the database, its security rules and functions. The design and the 3NF reasoning are in `docs/database.md`.
+- `scripts/`: the seed scripts.
+
+## Security rules
+
+- Every table has row-level security: patients only see their own records, doctors only their own patients, and admins only aggregated health data.
+- Bookings are only confirmed by the server after M-Pesa reports success, never by the browser.
+- Red-flag rules run before the AI and block booking. AI suggestions are always labelled "not a diagnosis".

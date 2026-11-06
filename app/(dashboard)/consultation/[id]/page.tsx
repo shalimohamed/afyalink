@@ -37,6 +37,11 @@ export default async function ConsultationPage({ params }: { params: Promise<{ i
     ) : (
       <p className="notice bad">We couldn&apos;t start the video call. Please reload the page in a moment.</p>
     )
+  ) : consultation.doctorSuspended ? (
+    <p className="notice bad">
+      Dr. {doctorName} is no longer available on AfyaLink, so this consultation won&apos;t take place.{" "}
+      {isPatient && <Link href={back}>See your booking</Link>}
+    </p>
   ) : consultation.callWindow === "early" ? (
     <p className="notice ok">The call opens 15 minutes before the start time. Come back then. This page will let you join.</p>
   ) : (
