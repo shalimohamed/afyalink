@@ -136,6 +136,10 @@ export default function RegisterForm({ initialRole }: { initialRole: Role }) {
           </fieldset>
         )}
 
+        <p className="empty">
+          By creating an account, you agree to how AfyaLink handles your data, as set out in the{" "}
+          <Link href="/privacy">privacy policy</Link>.
+        </p>
         <button className="btn btn-primary" disabled={pending}>
           {pending ? "Creating account…" : "Create account"}
         </button>

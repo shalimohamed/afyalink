@@ -16,7 +16,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </nav>
       <main className="auth-main">{children}</main>
       <footer>
-        <span>© 2026 AfyaLink · Nairobi, Kenya</span>
+        <span>
+          © 2026 AfyaLink · Nairobi, Kenya · <Link href="/privacy">Privacy policy</Link>
+        </span>
         <span>AfyaLink doesn&apos;t replace emergency care. In an emergency call 999 or 112.</span>
       </footer>
     </div>

@@ -185,6 +185,12 @@ footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;paddin
 .notice.bad{background:var(--alert-soft);color:var(--alert)}
 /* "Student demo" line at the top of the public pages (components/DemoNotice.tsx) */
 .demo-bar{margin:12px 0 0;padding:8px 14px;border-radius:12px;background:var(--soft);font-size:13px;line-height:1.45;text-align:center}
+/* The privacy policy (app/privacy/page.tsx): a wider card with readable text */
+.auth-card.legal{max-width:760px;line-height:1.6}
+.legal h2{font-size:20px;font-weight:700;margin:26px 0 8px}
+.legal p{margin:0 0 10px}
+.legal ul{list-style:disc;padding-left:22px;margin:0 0 10px;display:grid;gap:6px}
+.legal a,footer a{color:var(--accent)}
 /* "Forgot your password?" under the password box */
 .field-link{justify-self:end;font-size:14px;font-weight:600;color:var(--accent)}
 .btn-google{width:100%;justify-content:center;gap:10px;background:var(--surface);color:var(--ink);border-color:var(--line);font-family:inherit;cursor:pointer}

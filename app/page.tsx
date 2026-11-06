@@ -199,7 +199,9 @@ export default function Home() {
       </div>
 
       <footer>
-        <span>© 2026 AfyaLink · Nairobi, Kenya</span>
+        <span>
+          © 2026 AfyaLink · Nairobi, Kenya · <a href="/privacy">Privacy policy</a>
+        </span>
         <span>AfyaLink doesn&apos;t replace emergency care. In an emergency call 999 or 112.</span>
         <span className="credits">Photos: August de Richelieu, Tessy Agbonome and Ekaterina Bolovtsova on Pexels; Ahmed Nasiru, Vitaly Gariev, vaibhav vivian, freestocks (phone screen edited) and YouVersion on Unsplash</span>
       </footer>
